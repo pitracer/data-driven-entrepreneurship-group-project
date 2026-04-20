@@ -1,0 +1,16 @@
+streamlit>=1.30
+pandas>=2.0
+pyarrow>=14.0
+openpyxl>=3.1
+plotly>=5.18
+pydeck>=0.8
+google-search-results
+groq>=0.4
+requests>=2.31
+python-dotenv>=1.0
+numpy>=1.26
+faiss-cpu>=1.7
+sentence-transformers>=2.2
+langchain>=0.1
+langchain-community>=0.0.20
+langchain-groq>=0.0.3

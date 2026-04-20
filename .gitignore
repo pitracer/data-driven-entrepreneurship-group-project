@@ -1,0 +1,21 @@
+# Secrets
+.env
+
+# Data (raw + processed — large files, not for git)
+data/raw/
+data/processed/
+data/cache/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+*.Zone.Identifier
