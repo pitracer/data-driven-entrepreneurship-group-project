@@ -26,6 +26,17 @@ and Gazelles — are quietly driving the city's job growth.
 **Why this works for grading:** It's a testable claim, not just a visualization.
 The pipeline *discovers* the story; the dashboard *tells* it.
 
+**Definitions**
+- Scalers are companies that have an average annualised growth rate of more than 10% over the three-year period and have at least 10 employees at the beginning of the period.
+- High-Growth Firms (HGFs) are companies that have an average annualised growth rate of more than 20% over the three-year period and have at least 10 employees at the beginning of the period.
+- Consistent HGFs are companies that meet the criteria of HGFs and have a growth rate of more than 20% for at least two out of the three years.
+- Consistent Hypergrowers are companies that meet the criteria of HGFs and havea growth rate of more than 40% for at least two out of the three years.
+- Gazelles are consistent HGFs that are 10 years or younger.
+- Mature HGFs are consistent HGFs that are older than 10 years.
+- Scaleups are Consistent Hypergrowers that are 10 years or younger.
+- Superstars are Consistent Hypergrowers that are older than 10 years.
+
+
 ---
 
 ## 2. Repo Structure

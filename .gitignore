@@ -1,10 +1,12 @@
 # Secrets
 .env
 
-# Data (raw + processed — large files, not for git)
+# Data (raw + processed — large binary files, not for git)
 data/raw/
 data/processed/
-data/cache/
+
+# Cache IS committed — teammates need it to avoid re-burning API credits
+# data/cache/
 
 # Python
 __pycache__/

@@ -133,6 +133,21 @@ COLUMN_RENAMES: dict[str, str] = {
     "Superstar 2020": "superstar_2020",
 }
 
+# ---------------------------------------------------------------------------
+# Data loader helper
+# ---------------------------------------------------------------------------
+def load_best_data() -> "pd.DataFrame":
+    """Return firms_enriched if it exists, otherwise firms_clean."""
+    import pandas as pd
+    if FIRMS_ENRICHED.exists():
+        return pd.read_parquet(FIRMS_ENRICHED)
+    if FIRMS_CLEAN.exists():
+        return pd.read_parquet(FIRMS_CLEAN)
+    raise FileNotFoundError("No processed data found. Run step_01_clean first.")
+
+
+ENRICHMENT_COLUMNS = ["website", "address", "lat", "lon", "snippet", "profile_text"]
+
 # Columns to drop entirely (all-constant values, no analytical use)
 COLUMNS_TO_DROP: list[str] = [
     "Unnamed: 0",

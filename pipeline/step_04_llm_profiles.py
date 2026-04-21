@@ -8,6 +8,7 @@ Usage: python -m pipeline.step_04_llm_profiles
 """
 from __future__ import annotations
 
+import argparse
 import sys
 import time
 
@@ -46,7 +47,7 @@ def _build_prompt(row: pd.Series) -> str:
     )
 
 
-def run() -> pd.DataFrame:
+def run(limit: int | None = None) -> pd.DataFrame:
     ensure_dirs()
 
     if not GROQ_API_KEY:
@@ -80,6 +81,9 @@ def run() -> pd.DataFrame:
             profile_text = cached["profile_text"]
             cache_hits += 1
         else:
+            if limit is not None and generated >= limit:
+                print(f"[step_04] Limit of {limit} new calls reached — stopping")
+                break
             prompt = _build_prompt(firm)
             try:
                 resp = client.chat.completions.create(
@@ -111,5 +115,9 @@ def run() -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--limit", type=int, default=None,
+                        help="Max new API calls (default: unlimited)")
+    args = parser.parse_args()
+    run(limit=args.limit)
     sys.exit(0)
