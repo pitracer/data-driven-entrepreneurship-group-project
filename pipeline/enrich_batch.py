@@ -33,6 +33,8 @@ from pipeline.config import (
     DATA_PROCESSED,
     FIRMS_CLEAN,
     FIRMS_ENRICHED,
+    ORBIS_BATCH_FILES,
+    ORBIS_DATA,
     ensure_dirs,
 )
 
@@ -84,6 +86,25 @@ def status() -> None:
     print(f"  Sector narratives:     {n_sectors:>4} / {total_sectors}")
     print(f"  ─────────────────────────────────")
 
+    # Orbis coverage
+    n_orbis = 0
+    n_orbis_addr = 0
+    n_orbis_rev = 0
+    n_orbis_phd = 0
+    if ORBIS_DATA.exists():
+        orbis = pd.read_parquet(ORBIS_DATA)
+        n_orbis = len(orbis)
+        n_orbis_addr = orbis["orbis_street"].notna().sum()
+        n_orbis_rev = orbis["orbis_revenue_latest"].notna().sum()
+        n_orbis_phd = orbis["has_phd"].sum()
+
+    print(f"  ─────────────────────────────────")
+    print(f"  Orbis batch data:      {n_orbis:>4} firms")
+    print(f"    Addresses:           {n_orbis_addr:>4}")
+    print(f"    Revenue:             {n_orbis_rev:>4}")
+    print(f"    Has PhD/Dr mgmt:     {n_orbis_phd:>4}")
+    print(f"  ─────────────────────────────────")
+
     remaining_serp = n_total - n_serp
     remaining_profiles = n_total - n_profiles
     print(f"  Remaining API calls needed:")
@@ -103,10 +124,20 @@ def status() -> None:
 def run(limit: int | None = None) -> None:
     """Run all enrichment steps in sequence."""
     import pipeline.enrich_groq as eg
+    import pipeline.step_00_orbis as s00
     import pipeline.step_02_search as s02
     import pipeline.step_03_geocode as s03
     import pipeline.step_04_llm_profiles as s04
     import pipeline.step_05_llm_sectors as s05
+
+    if any(f.exists() for f in ORBIS_BATCH_FILES):
+        print("\n" + "=" * 55)
+        print("  BATCH ENRICHMENT — Step 0: Orbis batch data")
+        print("=" * 55)
+        try:
+            s00.run()
+        except Exception as e:
+            print(f"  [skip] Orbis parsing failed: {e}")
 
     print("\n" + "=" * 55)
     print("  BATCH ENRICHMENT — Step 1/5: Groq auto-enrich")
@@ -177,6 +208,29 @@ def _merge_enriched() -> None:
     if llm_path.exists():
         llm = pd.read_parquet(llm_path)[["bvd_id", "profile_text"]]
         df = df.merge(llm, on="bvd_id", how="left")
+
+    # Merge Orbis data (financial, address fallback, management education)
+    if ORBIS_DATA.exists():
+        orbis = pd.read_parquet(ORBIS_DATA)
+        orbis_cols = [c for c in orbis.columns if c != "orbis_company_name"]
+        df = df.merge(orbis[orbis_cols], on="bvd_id", how="left")
+
+        # Use Orbis address as fallback
+        if "address" not in df.columns:
+            df["address"] = None
+        orbis_addr = (
+            df["orbis_street"].fillna("") + ", "
+            + df["orbis_postcode"].astype(str).replace("<NA>", "") + " "
+            + df["orbis_city"].fillna("")
+        ).str.strip(", ")
+        mask = df["address"].isna() & df["orbis_street"].notna()
+        df.loc[mask, "address"] = orbis_addr[mask]
+
+        # Use Orbis website as fallback
+        if "website" not in df.columns:
+            df["website"] = None
+        mask_web = df["website"].isna() & df["orbis_website"].notna()
+        df.loc[mask_web, "website"] = df.loc[mask_web, "orbis_website"]
 
     df.to_parquet(FIRMS_ENRICHED, index=False)
     n = df[["website", "snippet", "profile_text"]].notna().any(axis=1).sum() if "website" in df.columns else 0

@@ -148,6 +148,15 @@ def load_best_data() -> "pd.DataFrame":
 
 ENRICHMENT_COLUMNS = ["website", "address", "lat", "lon", "snippet", "profile_text"]
 
+# ---------------------------------------------------------------------------
+# Orbis batch data
+# ---------------------------------------------------------------------------
+ORBIS_BATCH_FILES = [
+    DATA_RAW / "Orbis_batch1done.xlsx",
+    DATA_RAW / "Orbis_batch2done.xlsx",
+]
+ORBIS_DATA = DATA_PROCESSED / "orbis_data.parquet"
+
 # Columns to drop entirely (all-constant values, no analytical use)
 COLUMNS_TO_DROP: list[str] = [
     "Unnamed: 0",

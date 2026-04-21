@@ -21,6 +21,7 @@ from pipeline.config import (
     FIRMS_CLEAN,
     NOMINATIM_RATE_LIMIT,
     NOMINATIM_USER_AGENT,
+    ORBIS_DATA,
     ensure_dirs,
 )
 
@@ -32,10 +33,15 @@ def geocode_nominatim(address: str) -> tuple[float | None, float | None]:
     """Query Nominatim for lat/lon of an address in Düsseldorf."""
     if not address:
         return None, None
+    query = address.title()
+    if "düsseldorf" not in query.lower() and "duesseldorf" not in query.lower():
+        query += ", Düsseldorf, Germany"
+    elif "germany" not in query.lower():
+        query += ", Germany"
     try:
         resp = requests.get(
             "https://nominatim.openstreetmap.org/search",
-            params={"q": address + ", Düsseldorf, Germany", "format": "json", "limit": 1},
+            params={"q": query, "format": "json", "limit": 1},
             headers={"User-Agent": NOMINATIM_USER_AGENT},
             timeout=10,
         )
@@ -52,14 +58,26 @@ def run() -> pd.DataFrame:
 
     # Load base firms
     df_firms = pd.read_parquet(FIRMS_CLEAN)[["bvd_id", "company_name"]]
+    df = df_firms.copy()
+    df["address"] = None
 
-    # Load search results if available
-    if not SEARCH_RESULTS.exists():
-        print("[step_03] search_results.parquet not found — run step_02 first")
-        sys.exit(1)
+    # Merge search results addresses
+    if SEARCH_RESULTS.exists():
+        df_search = pd.read_parquet(SEARCH_RESULTS)[["bvd_id", "address"]]
+        df = df.drop(columns=["address"]).merge(df_search, on="bvd_id", how="left")
 
-    df_search = pd.read_parquet(SEARCH_RESULTS)[["bvd_id", "address"]]
-    df = df_firms.merge(df_search, on="bvd_id", how="left")
+    # Fill gaps with Orbis addresses
+    if ORBIS_DATA.exists():
+        orbis = pd.read_parquet(ORBIS_DATA)[["bvd_id", "orbis_street", "orbis_postcode", "orbis_city"]]
+        df = df.merge(orbis, on="bvd_id", how="left")
+        orbis_addr = (
+            df["orbis_street"].fillna("") + ", "
+            + df["orbis_postcode"].astype(str).replace("<NA>", "") + " "
+            + df["orbis_city"].fillna("")
+        ).str.strip(", ")
+        mask = df["address"].isna() & df["orbis_street"].notna()
+        df.loc[mask, "address"] = orbis_addr[mask]
+        df = df.drop(columns=["orbis_street", "orbis_postcode", "orbis_city"])
 
     cache = FileCache(CACHE_GEOCODE)
     rows = []

@@ -62,5 +62,41 @@ def render_firm_card(
                 unsafe_allow_html=True,
             )
 
+        # Financial data from Orbis
+        rev = firm.get("orbis_revenue_latest")
+        profit = firm.get("orbis_profit_latest")
+        if pd.notna(rev) or pd.notna(profit):
+            fcols = st.columns(2)
+            with fcols[0]:
+                if pd.notna(rev):
+                    rev_m = rev / 1000
+                    st.metric("Revenue (M EUR)", f"{rev_m:,.0f}")
+            with fcols[1]:
+                if pd.notna(profit):
+                    profit_m = profit / 1000
+                    st.metric("Profit before tax (M EUR)", f"{profit_m:,.0f}")
+
+        # Management education
+        edu_score = firm.get("mgmt_education_score")
+        if pd.notna(edu_score) and edu_score != "low":
+            n_mgr = firm.get("n_managers", 0)
+            n_doc = firm.get("n_doctors", 0)
+            has_prof = firm.get("has_professor", False)
+            badges = []
+            if has_prof:
+                badges.append("Prof.")
+            if n_doc > 0:
+                badges.append(f"{int(n_doc)} Dr./PhD")
+            badge_str = " · ".join(badges) if badges else edu_score.title()
+            color = "#FFD700" if edu_score == "high" else "#72ACAD"
+            st.markdown(
+                f'<span style="background:{color};color:#1A1A00;padding:2px 8px;'
+                f'border-radius:3px;font-size:11px;font-weight:600;">'
+                f'Mgmt: {badge_str}</span>'
+                f' <span style="font-size:11px;color:rgba(247,248,247,.5);">'
+                f'{int(n_mgr)} managers</span>',
+                unsafe_allow_html=True,
+            )
+
         if website:
             st.markdown(f"🌐 [{website}]({website})")

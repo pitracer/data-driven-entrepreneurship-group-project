@@ -104,11 +104,14 @@ job_change_top10 = int(
 )
 job_change_str = f"{job_change_top10:+,}"
 
+n_with_revenue = int(df["orbis_revenue_latest"].notna().sum()) if "orbis_revenue_latest" in df.columns else 0
+n_phd_mgmt = int(df["has_phd"].sum()) if "has_phd" in df.columns else 0
+
 kpi(c1, "Total Firms", f"{len(df):,}", "unique BvD IDs")
 kpi(c2, "Gazelles 🦌", str(n_gazelles), "≥20% growth/year")
 kpi(c3, "Scalers 📈", str(n_scalers), "sustained high growth")
-kpi(c4, "NACE Sectors", str(n_sectors), "industry segments")
-kpi(c5, "Top-10 Job Δ", job_change_str, "since earliest baseline")
+kpi(c4, "Top-10 Job Δ", job_change_str, "since earliest baseline")
+kpi(c5, "PhD/Dr Mgmt", str(n_phd_mgmt), f"of {len(df):,} firms")
 
 # ── Callout ───────────────────────────────────────────────────────────────────
 st.markdown(

@@ -39,7 +39,10 @@ col_search, col_sort = st.columns([3, 1])
 with col_search:
     search = st.text_input("Search company name", placeholder="e.g. Deloitte, Amazon, MVISE...")
 with col_sort:
-    sort_col = st.selectbox("Sort by", ["employees_2024", "growth_2024", "company_name"], index=0)
+    sort_options = ["employees_2024", "growth_2024", "company_name"]
+    if "orbis_revenue_latest" in df_filtered.columns:
+        sort_options.insert(1, "orbis_revenue_latest")
+    sort_col = st.selectbox("Sort by", sort_options, index=0)
 
 if search:
     df_filtered = df_filtered[
@@ -62,6 +65,8 @@ display_cols = {
     "employees_2024": "Employees 2024",
     "growth_2024": "Growth 2024",
     "employee_change_pct": "Change vs baseline",
+    "orbis_revenue_latest": "Revenue (k EUR)",
+    "mgmt_education_score": "Mgmt Education",
 }
 available = [c for c in display_cols if c in df_filtered.columns]
 
@@ -74,6 +79,11 @@ for col in ["Growth 2024", "Change vs baseline"]:
         df_display[col] = df_display[col].apply(
             lambda v: f"{v:+.1%}" if pd.notna(v) else "n/a"
         )
+
+if "Revenue (k EUR)" in df_display.columns:
+    df_display["Revenue (k EUR)"] = df_display["Revenue (k EUR)"].apply(
+        lambda v: f"{v:,.0f}" if pd.notna(v) else ""
+    )
 
 event = st.dataframe(
     df_display.head(200),

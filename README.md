@@ -34,27 +34,70 @@ group-assignment/
 │   │   └── 4_Chat.py              # RAG chatbot (bring your own Groq key)
 │   └── components/
 │       ├── sidebar_filters.py     # Shared sidebar filters
-│       ├── firm_card.py           # Firm detail card component
+│       ├── firm_card.py           # Firm detail card + revenue/education badges
 │       └── chat_engine.py         # FAISS + Groq chat engine
 ├── pipeline/
 │   ├── config.py                  # Paths, API settings, constants
+│   ├── step_00_orbis.py           # Orbis batch Excel → orbis_data.parquet
 │   ├── step_01_clean.py           # Raw XLSX → firms_clean.parquet
 │   ├── enrich_batch.py            # One-command batch enrichment + status
 │   ├── enrich_groq.py             # Groq LLM auto-enrich (website/address/snippet)
 │   ├── step_02_search.py          # SerpAPI enrichment
-│   ├── step_03_geocode.py         # Nominatim geocoding (free)
+│   ├── step_03_geocode.py         # Nominatim geocoding (free) — uses Orbis addresses
 │   ├── step_04_llm_profiles.py    # Groq company profiles
 │   ├── step_05_llm_sectors.py     # Groq sector narratives
 │   ├── export_for_enrichment.py   # Export Excel for manual enrichment
 │   ├── import_enriched.py         # Import enriched Excel → parquet
 │   └── run_pipeline.py            # Orchestrate all pipeline steps
 ├── data/
-│   ├── raw/DUESSELDORF.xlsx       # Source data (BvD)
+│   ├── raw/
+│   │   ├── DUESSELDORF.xlsx       # Source data (BvD) — employee growth data
+│   │   ├── Orbis_batch1done.xlsx  # Orbis batch 1 — 971 firms (revenue, addresses, mgmt)
+│   │   └── Orbis_batch2done.xlsx  # Orbis batch 2 — 552 firms
 │   ├── processed/                 # Parquet outputs (gitignored)
 │   └── cache/                     # API response cache (COMMITTED to git)
 ├── Dockerfile
 ├── docker-compose.yml
 └── requirements.txt
+```
+
+---
+
+## Orbis Batch Data Integration
+
+Düsseldorf firm data was enriched with two Orbis (BvD) batch exports covering 1,523 of 1,555 firms. These add financial data (revenue, profit, equity ratios) and management education indicators.
+
+### What Orbis provides
+
+| Column | Description |
+|--------|-------------|
+| `orbis_revenue_latest` | Latest fiscal year revenue (1,000 EUR) |
+| `orbis_profit_latest` | Latest pre-tax profit (1,000 EUR) |
+| `orbis_equity_ratio_latest` | Equity ratio (%) |
+| `orbis_street` / `orbis_postcode` / `orbis_city` | Orbis address (used as geocoding fallback) |
+| `orbis_website` | Company website (used as fallback if SerpAPI/Groq missing) |
+| `has_phd` | Bool — any manager has Dr./PhD title |
+| `has_professor` | Bool — any manager holds Prof. title |
+| `n_doctors` | Count of managers with doctoral degree |
+| `mgmt_education_score` | `"high"` / `"medium"` / `"low"` |
+| `avg_manager_age` | Mean manager age from Orbis |
+
+### Orbis file structure (for reference)
+
+Both files use sheet `Ergebnisse` and must be read with `engine='calamine'` (openpyxl fails). Each firm occupies **multiple rows** — the first row has financial + address data, subsequent rows contain individual manager records. The `Unnamed: 0` column is non-null only on firm header rows.
+
+### Re-parse Orbis data
+
+If you receive updated Orbis batch files, drop them in `data/raw/` with the same names and run:
+
+```bash
+python -m pipeline.step_00_orbis
+```
+
+Then re-run the merge to update `firms_enriched.parquet`:
+
+```bash
+python -m pipeline.enrich_batch
 ```
 
 ---
