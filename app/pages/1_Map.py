@@ -3,7 +3,7 @@ import pandas as pd
 import pydeck as pdk
 import streamlit as st
 
-from pipeline.config import DATA_PROCESSED, load_best_data
+from pipeline.config import load_best_data
 from app.components.sidebar_filters import render_sidebar, CATEGORY_COLORS
 
 st.set_page_config(page_title="Map · Düsseldorf Growth", layout="wide")
@@ -31,12 +31,6 @@ CATEGORY_RGB = {
 def load_data():
     df = load_best_data()
     has_geo = "lat" in df.columns and df["lat"].notna().any()
-    if not has_geo:
-        geo_path = DATA_PROCESSED / "geocode_results.parquet"
-        if geo_path.exists():
-            geo = pd.read_parquet(geo_path)
-            df = df.merge(geo[["bvd_id", "lat", "lon"]], on="bvd_id", how="left")
-            has_geo = True
     return df, has_geo
 
 

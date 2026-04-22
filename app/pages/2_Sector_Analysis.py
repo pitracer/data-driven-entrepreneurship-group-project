@@ -6,7 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from pipeline.config import DATA_PROCESSED, load_best_data, SECTOR_NARRATIVES
+from pipeline.config import load_best_data, SECTOR_NARRATIVES
 from app.components.sidebar_filters import render_sidebar
 
 st.set_page_config(page_title="Sector Analysis · Düsseldorf Growth", layout="wide")

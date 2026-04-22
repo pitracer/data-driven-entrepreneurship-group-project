@@ -16,6 +16,7 @@ load_dotenv(ROOT / ".env")
 
 DATA_RAW = ROOT / "data" / "raw"
 DATA_PROCESSED = ROOT / "data" / "processed"
+DATA_FINAL = ROOT / "data" / "final"       # committed to git — app reads from here
 CACHE_SERP = ROOT / "data" / "cache" / "serp"
 CACHE_GEOCODE = ROOT / "data" / "cache" / "geocode"
 CACHE_LLM = ROOT / "data" / "cache" / "llm"
@@ -23,14 +24,16 @@ CACHE_LLM = ROOT / "data" / "cache" / "llm"
 
 def ensure_dirs() -> None:
     """Create all required data directories. Call once at the start of each pipeline step."""
-    for _dir in (DATA_RAW, DATA_PROCESSED, CACHE_SERP, CACHE_GEOCODE, CACHE_LLM):
+    for _dir in (DATA_RAW, DATA_PROCESSED, DATA_FINAL, CACHE_SERP, CACHE_GEOCODE, CACHE_LLM):
         _dir.mkdir(parents=True, exist_ok=True)
 
 # Source / output files
 XLSX_SOURCE = DATA_RAW / "DUESSELDORF.xlsx"
 FIRMS_CLEAN = DATA_PROCESSED / "firms_clean.parquet"
-FIRMS_ENRICHED = DATA_PROCESSED / "firms_enriched.parquet"
-SECTOR_NARRATIVES = DATA_PROCESSED / "sector_narratives.json"
+FIRMS_ENRICHED = DATA_FINAL / "firms_enriched.parquet"      # app reads this
+SECTOR_NARRATIVES = DATA_FINAL / "sector_narratives.json"   # app reads this
+# Pipeline intermediates (local only, gitignored via data/processed/)
+FIRMS_ENRICHED_PROCESSED = DATA_PROCESSED / "firms_enriched.parquet"
 
 # ---------------------------------------------------------------------------
 # API settings (loaded from .env)

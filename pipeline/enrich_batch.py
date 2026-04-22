@@ -30,9 +30,11 @@ from pipeline.config import (
     CACHE_GEOCODE,
     CACHE_LLM,
     CACHE_SERP,
+    DATA_FINAL,
     DATA_PROCESSED,
     FIRMS_CLEAN,
     FIRMS_ENRICHED,
+    FIRMS_ENRICHED_PROCESSED,
     ORBIS_BATCH_FILES,
     ORBIS_DATA,
     ensure_dirs,
@@ -232,6 +234,8 @@ def _merge_enriched() -> None:
         mask_web = df["website"].isna() & df["orbis_website"].notna()
         df.loc[mask_web, "website"] = df.loc[mask_web, "orbis_website"]
 
+    df.to_parquet(FIRMS_ENRICHED_PROCESSED, index=False)
+    DATA_FINAL.mkdir(parents=True, exist_ok=True)
     df.to_parquet(FIRMS_ENRICHED, index=False)
     n = df[["website", "snippet", "profile_text"]].notna().any(axis=1).sum() if "website" in df.columns else 0
     print(f"  Wrote {FIRMS_ENRICHED.name} — {n} firms with enrichment data")

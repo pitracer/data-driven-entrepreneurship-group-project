@@ -1,9 +1,10 @@
 # Secrets
 .env
 
-# Data (raw + processed — large binary files, not for git)
+# Data — pipeline inputs/intermediates: local only, never committed
 data/raw/
 data/processed/
+# data/final/ is intentionally NOT ignored — app reads from there, committed to git
 
 # Cache IS committed — teammates need it to avoid re-burning API credits
 # data/cache/
