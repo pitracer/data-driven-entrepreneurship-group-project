@@ -106,10 +106,13 @@ def chat(
         "and 156 Scalers (sustained high growth)."
     )
 
+    # Strip any extra keys (e.g. "sources") — Groq only accepts role + content
+    groq_messages = [{"role": m["role"], "content": m["content"]} for m in messages]
+
     client = Groq(api_key=api_key)
     resp = client.chat.completions.create(
         model=GROQ_MODEL,
-        messages=[{"role": "system", "content": system}] + messages,
+        messages=[{"role": "system", "content": system}] + groq_messages,
         temperature=0.3,
         max_tokens=600,
     )

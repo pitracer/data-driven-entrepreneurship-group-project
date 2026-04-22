@@ -132,6 +132,77 @@ fig2.update_layout(
 )
 st.plotly_chart(fig2, use_container_width=True)
 
+# ── Chart 3: Equity Ratio by Sector (Orbis) ──────────────────────────────────
+if "orbis_equity_ratio_latest" in df.columns:
+    st.markdown('<div class="section-label">Financial Health · Median Equity Ratio by Sector</div>', unsafe_allow_html=True)
+
+    eq_sector = (
+        df[df["orbis_equity_ratio_latest"].notna() & (df["orbis_equity_ratio_latest"] >= 0)]
+        .groupby("nace_letter")
+        .agg(
+            median_eq=("orbis_equity_ratio_latest", "median"),
+            n=("orbis_equity_ratio_latest", "count"),
+            nace_section=("nace_section", "first"),
+        )
+        .reset_index()
+    )
+    eq_sector = eq_sector[eq_sector["n"] >= 5].sort_values("median_eq", ascending=True).tail(14)
+    eq_sector["label"] = eq_sector["nace_letter"] + " · " + eq_sector["nace_section"].str[:35]
+
+    fig3 = go.Figure([go.Bar(
+        y=eq_sector["label"],
+        x=eq_sector["median_eq"],
+        orientation="h",
+        marker_color="#72ACAD",
+        text=[f"{v:.0f}%" for v in eq_sector["median_eq"]],
+        textposition="outside",
+    )])
+    fig3.update_layout(
+        **CHART_LAYOUT,
+        height=420,
+        xaxis=dict(title="Median equity ratio (%)", ticksuffix="%"),
+        yaxis=dict(automargin=True),
+    )
+    st.plotly_chart(fig3, use_container_width=True)
+    st.markdown(
+        f'<p style="font-size:11px;color:rgba(247,248,247,.4);margin-top:-12px;">'
+        f'Orbis equity data available for {int(df["orbis_equity_ratio_latest"].notna().sum())} firms</p>',
+        unsafe_allow_html=True,
+    )
+
+# ── Chart 4: Management Age by Sector ────────────────────────────────────────
+if "avg_manager_age" in df.columns:
+    st.markdown('<div class="section-label">Leadership Age · Average Manager Age by Sector</div>', unsafe_allow_html=True)
+
+    age_sector = (
+        df[df["avg_manager_age"].notna()]
+        .groupby("nace_letter")
+        .agg(
+            mean_age=("avg_manager_age", "mean"),
+            n=("avg_manager_age", "count"),
+            nace_section=("nace_section", "first"),
+        )
+        .reset_index()
+    )
+    age_sector = age_sector[age_sector["n"] >= 10].sort_values("mean_age", ascending=True)
+    age_sector["label"] = age_sector["nace_letter"] + " · " + age_sector["nace_section"].str[:35]
+
+    fig4 = go.Figure([go.Bar(
+        y=age_sector["label"],
+        x=age_sector["mean_age"],
+        orientation="h",
+        marker_color="#558E8F",
+        text=[f"{v:.1f} yrs" for v in age_sector["mean_age"]],
+        textposition="outside",
+    )])
+    fig4.update_layout(
+        **CHART_LAYOUT,
+        height=420,
+        xaxis=dict(title="Average manager age (years)", range=[48, 68]),
+        yaxis=dict(automargin=True),
+    )
+    st.plotly_chart(fig4, use_container_width=True)
+
 # ── Sector narratives ─────────────────────────────────────────────────────────
 st.markdown('<div class="section-label">Sector Intelligence</div>', unsafe_allow_html=True)
 
