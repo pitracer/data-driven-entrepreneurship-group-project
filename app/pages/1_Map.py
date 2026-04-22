@@ -1,4 +1,8 @@
 """Map page — geocoded firms on a pydeck dark map."""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+
 import pandas as pd
 import pydeck as pdk
 import streamlit as st

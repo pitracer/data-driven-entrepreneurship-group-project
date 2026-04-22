@@ -1,4 +1,8 @@
 """Sector Analysis — charts + LLM sector narratives."""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+
 import json
 
 import pandas as pd

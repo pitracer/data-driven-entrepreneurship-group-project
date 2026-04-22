@@ -1,4 +1,8 @@
 """Chat page — RAG chatbot powered by FAISS + Groq."""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+
 import pandas as pd
 import streamlit as st
 
