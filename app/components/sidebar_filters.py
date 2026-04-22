@@ -7,9 +7,9 @@ import streamlit as st
 
 CATEGORY_COLORS = {
     "Gazelle":    "#FFD700",
-    "Scaler":     "#558E8F",
-    "HighGrowth": "#72ACAD",
-    "Mature":     "#9AB0B0",
+    "Scaler":     "#1E6FD4",
+    "HighGrowth": "#64B5F6",
+    "Mature":     "#78909C",
     "Other":      "#555555",
 }
 
@@ -64,6 +64,8 @@ def render_sidebar(df: pd.DataFrame) -> pd.DataFrame:
 
     st.sidebar.divider()
     st.sidebar.caption("Data: BvD / Bureau van Dijk · Enriched via SerpAPI + Groq")
+    st.sidebar.markdown("<div style='margin-top:auto;'></div>", unsafe_allow_html=True)
+    st.sidebar.page_link("pages/5_Chat.py", label="💬 Ask the Data", help="Chat with the dataset using AI")
 
     # Apply filters
     mask = (

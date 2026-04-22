@@ -14,8 +14,8 @@ st.set_page_config(page_title="Chat · Düsseldorf Growth", layout="wide")
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Open+Sans:wght@400;600&display=swap');
-.stApp { background-color: #2B5354; }
-section[data-testid="stSidebar"] { background-color: #244546; }
+.stApp { background-color: #0B1F3A; }
+section[data-testid="stSidebar"] { background-color: #071629; }
 h1,h2,h3 { font-family: 'Rajdhani', sans-serif !important; color: #F7F8F7 !important; }
 p, .stMarkdown { color: #F7F8F7; font-family: 'Open Sans', sans-serif; }
 .sources-box {

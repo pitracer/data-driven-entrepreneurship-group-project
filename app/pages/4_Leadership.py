@@ -16,8 +16,8 @@ st.set_page_config(page_title="Leadership Profile · Düsseldorf Growth", layout
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Open+Sans:wght@400;600&display=swap');
-.stApp { background-color: #2B5354; }
-section[data-testid="stSidebar"] { background-color: #244546; }
+.stApp { background-color: #0B1F3A; }
+section[data-testid="stSidebar"] { background-color: #071629; }
 h1,h2,h3 { font-family: 'Rajdhani', sans-serif !important; color: #F7F8F7 !important; }
 p, .stMarkdown { color: #F7F8F7; font-family: 'Open Sans', sans-serif; }
 .section-label {
@@ -38,12 +38,12 @@ p, .stMarkdown { color: #F7F8F7; font-family: 'Open Sans', sans-serif; }
 """, unsafe_allow_html=True)
 
 CHART_LAYOUT = dict(
-    paper_bgcolor="#355E5F",
+    paper_bgcolor="#0F2440",
     plot_bgcolor="rgba(255,255,255,0.04)",
     font=dict(color="#F7F8F7", family="Open Sans"),
     margin=dict(l=10, r=10, t=36, b=10),
 )
-CAT_COLORS = {"Gazelle": "#FFD700", "Scaler": "#558E8F", "Other": "#6B8E8E"}
+CAT_COLORS = {"Gazelle": "#FFB300", "Scaler": "#42A5F5", "Other": "#455A64"}
 CAT_ORDER  = ["Gazelle", "Scaler", "Other"]
 
 
@@ -141,7 +141,7 @@ edu_raw = (
 edu_total = edu_raw.groupby("category_2024")["n"].transform("sum")
 edu_raw["pct"] = edu_raw["n"] / edu_total * 100
 
-edu_colors = {"high": "#FFD700", "medium": "#72ACAD", "low": "#355E5F"}
+edu_colors = {"high": "#FFD700", "medium": "#64B5F6", "low": "#0F2440"}
 edu_order  = ["high", "medium", "low"]
 
 fig_edu = go.Figure()
@@ -290,7 +290,7 @@ fig_sec = go.Figure([go.Bar(
     y=sector_edu["label"],
     x=sector_edu["phd_pct"],
     orientation="h",
-    marker_color="#558E8F",
+    marker_color="#1E6FD4",
     text=[f"{v:.0f}%" for v in sector_edu["phd_pct"]],
     textposition="outside",
 )])

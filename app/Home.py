@@ -20,12 +20,12 @@ st.set_page_config(
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Open+Sans:wght@400;600&display=swap');
-.stApp { background-color: #2B5354; }
-section[data-testid="stSidebar"] { background-color: #244546; }
+.stApp { background-color: #0B1F3A; }
+section[data-testid="stSidebar"] { background-color: #071629; }
 h1,h2,h3 { font-family: 'Rajdhani', sans-serif !important; color: #F7F8F7 !important; }
 p, li, .stMarkdown { color: #F7F8F7; font-family: 'Open Sans', sans-serif; }
 .metric-card {
-    background: #355E5F; border-radius: 4px; padding: 20px 24px;
+    background: #0F2440; border-radius: 4px; padding: 20px 24px;
     border: 1px solid rgba(247,248,247,.12); text-align: center;
 }
 .metric-label {
@@ -38,7 +38,7 @@ p, li, .stMarkdown { color: #F7F8F7; font-family: 'Open Sans', sans-serif; }
 }
 .metric-sub { font-size: 11px; color: rgba(247,248,247,.5); margin-top: 4px; }
 .callout {
-    border-left: 3px solid #558E8F; background: rgba(255,255,255,0.06);
+    border-left: 3px solid #1E6FD4; background: rgba(255,255,255,0.06);
     border-radius: 0 4px 4px 0; padding: 18px 22px; margin: 20px 0;
 }
 .section-label {
@@ -117,55 +117,19 @@ kpi(c3, "Scalers 📈", str(n_scalers), "sustained high growth")
 kpi(c4, "Top-10 Job Δ", job_change_str, "since earliest baseline")
 kpi(c5, "PhD/Dr Mgmt", str(n_phd_mgmt), f"of {len(df):,} firms")
 
-# ── Callout ───────────────────────────────────────────────────────────────────
-st.markdown(
-    f'<div class="callout">'
-    f"<strong>The paradox:</strong> Düsseldorf's 10 largest employers "
-    f"(Metro, Henkel, Rheinmetall…) have shed jobs since their peak. "
-    f"Meanwhile, {n_gazelles} Gazelles and {n_scalers} Scalers nobody has heard of "
-    f"are growing at 20%+ per year — and they cluster in just a handful of sectors."
-    f"</div>",
-    unsafe_allow_html=True,
-)
+# ── Category breakdown + navigation ──────────────────────────────────────────
+col_l, col_r = st.columns([1, 1])
 
-# ── Narrative ─────────────────────────────────────────────────────────────────
-st.markdown('<div class="section-label">The Story</div>', unsafe_allow_html=True)
-
-col_l, col_r = st.columns([2, 1])
 with col_l:
-    st.markdown("""
-**Act I — The Giants are shrinking.**
-Metro AG employed over 155,000 people in 2017; by 2024 that number had fallen to 87,810.
-Henkel, Rheinmetall, and most of Düsseldorf's headline employers tell a similar story of
-restructuring, automation, and global headcount rebalancing. The city's anchor firms are no
-longer the engine of local employment growth.
-
-**Act II — The Hidden Champions rise.**
-While the giants contract, a class of mid-sized firms most people have never heard of is
-quietly adding jobs at extraordinary rates. These Gazelles — young firms growing 20% or more
-per year — and their larger cousins, the Scalers, are concentrated in Professional Services,
-IT, and Healthcare. They are the real drivers of Düsseldorf's labour market resilience.
-
-**Act III — What does this mean?**
-The shift from corporate giants to agile hidden champions has profound implications for
-economic policy, real-estate demand, and talent flows in the city. This dashboard makes
-that shift visible — by firm, by sector, and by neighbourhood — for the first time.
-""")
-
-with col_r:
-    # Quick breakdown table
     cat_counts = df["category_2024"].value_counts().reset_index()
     cat_counts.columns = ["Category", "Firms"]
-    st.dataframe(
-        cat_counts,
-        hide_index=True,
-        use_container_width=True,
-    )
+    st.dataframe(cat_counts, hide_index=True, use_container_width=True)
 
-# ── Navigation ────────────────────────────────────────────────────────────────
-st.markdown('<div class="section-label">Explore</div>', unsafe_allow_html=True)
-nc1, nc2, nc3, nc4 = st.columns(4)
-nc1.page_link("pages/1_Map.py",             label="🗺️ Map",             help="Geocoded firms on an interactive map")
-nc2.page_link("pages/2_Sector_Analysis.py", label="📊 Sector Analysis", help="Charts + AI sector narratives")
-nc3.page_link("pages/3_Firm_Explorer.py",   label="🔍 Firm Explorer",   help="Search and filter all firms")
-nc4.page_link("pages/4_Chat.py",            label="💬 Chat",            help="Ask questions about the data")
+with col_r:
+    st.markdown('<div class="section-label">Explore</div>', unsafe_allow_html=True)
+    st.page_link("pages/1_Map.py",             label="🗺️ Map — geocoded firm locations")
+    st.page_link("pages/2_Sector_Analysis.py", label="📊 Sector Analysis — growth by NACE sector")
+    st.page_link("pages/3_Firm_Explorer.py",   label="🔍 Firm Explorer — search all 1,555 firms")
+    st.page_link("pages/4_Leadership.py",      label="🧬 Leadership Profile — Orbis management data")
+    st.page_link("pages/6_Stats.py",           label="📐 Stats — regression analysis of scaling factors")
+    st.page_link("pages/5_Chat.py",            label="💬 Chat — ask questions about the data")

@@ -6,9 +6,9 @@ import streamlit as st
 
 CATEGORY_BADGE = {
     "Gazelle":    ("🦌", "#FFD700", "#1A1A00"),
-    "Scaler":     ("📈", "#558E8F", "#F7F8F7"),
-    "HighGrowth": ("🚀", "#72ACAD", "#F7F8F7"),
-    "Mature":     ("🏛️",  "#9AB0B0", "#1A3334"),
+    "Scaler":     ("📈", "#1E6FD4", "#F7F8F7"),
+    "HighGrowth": ("🚀", "#64B5F6", "#F7F8F7"),
+    "Mature":     ("🏛️",  "#78909C", "#1A3334"),
     "Other":      ("·",  "#444",    "#F7F8F7"),
 }
 
@@ -56,7 +56,7 @@ def render_firm_card(
 
         if profile_text:
             st.markdown(
-                f'<div style="background:rgba(255,255,255,0.04);border-left:3px solid #558E8F;'
+                f'<div style="background:rgba(255,255,255,0.04);border-left:3px solid #1E6FD4;'
                 f'padding:12px 16px;border-radius:0 4px 4px 0;margin-top:8px;'
                 f'font-size:13px;color:#F7F8F7;">{profile_text}</div>',
                 unsafe_allow_html=True,
@@ -88,7 +88,7 @@ def render_firm_card(
             if n_doc > 0:
                 badges.append(f"{int(n_doc)} Dr./PhD")
             badge_str = " · ".join(badges) if badges else edu_score.title()
-            color = "#FFD700" if edu_score == "high" else "#72ACAD"
+            color = "#FFD700" if edu_score == "high" else "#64B5F6"
             st.markdown(
                 f'<span style="background:{color};color:#1A1A00;padding:2px 8px;'
                 f'border-radius:3px;font-size:11px;font-weight:600;">'
@@ -98,5 +98,5 @@ def render_firm_card(
                 unsafe_allow_html=True,
             )
 
-        if website:
+        if website and pd.notna(website):
             st.markdown(f"🌐 [{website}]({website})")

@@ -15,16 +15,16 @@ st.set_page_config(page_title="Map · Düsseldorf Growth", layout="wide")
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Open+Sans:wght@400;600&display=swap');
-.stApp { background-color: #2B5354; }
-section[data-testid="stSidebar"] { background-color: #244546; }
+.stApp { background-color: #0B1F3A; }
+section[data-testid="stSidebar"] { background-color: #071629; }
 h1,h2,h3 { font-family: 'Rajdhani', sans-serif !important; color: #F7F8F7 !important; }
 p, .stMarkdown { color: #F7F8F7; font-family: 'Open Sans', sans-serif; }
 </style>
 """, unsafe_allow_html=True)
 
 CATEGORY_RGB = {
-    "Gazelle":    [255, 215,   0],
-    "Scaler":     [ 85, 142, 143],
+    "Gazelle":    [255, 179,   0],
+    "Scaler":     [ 66, 165, 245],
     "HighGrowth": [114, 172, 173],
     "Mature":     [154, 176, 176],
     "Other":      [ 80,  80,  80],
@@ -63,7 +63,7 @@ df_map = df_filtered[df_filtered["lat"].notna()].copy()
 df_map["color"] = df_map["category_2024"].map(CATEGORY_RGB).apply(
     lambda c: c if isinstance(c, list) else [80, 80, 80]
 )
-df_map["radius"] = (df_map["employees_2024"].fillna(50) / 10).clip(20, 300)
+df_map["radius"] = (df_map["employees_2024"].fillna(50) / 50).clip(4, 60)
 df_map["emp_str"] = df_map["employees_2024"].apply(
     lambda v: f"{int(v):,}" if pd.notna(v) else "n/a"
 )
@@ -96,7 +96,7 @@ tooltip = {
         "Employees: {emp_str}"
     ),
     "style": {
-        "backgroundColor": "#244546",
+        "backgroundColor": "#071629",
         "color": "#F7F8F7",
         "fontFamily": "Open Sans, sans-serif",
         "fontSize": "12px",
