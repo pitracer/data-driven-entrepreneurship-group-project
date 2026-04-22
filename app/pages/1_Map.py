@@ -23,11 +23,11 @@ p, .stMarkdown { color: #F7F8F7; font-family: 'Open Sans', sans-serif; }
 """, unsafe_allow_html=True)
 
 CATEGORY_RGB = {
-    "Gazelle":    [255, 179,   0],
-    "Scaler":     [ 66, 165, 245],
-    "HighGrowth": [114, 172, 173],
-    "Mature":     [154, 176, 176],
-    "Other":      [ 80,  80,  80],
+    "Gazelle":    [255, 179,   0],   # amber
+    "Scaler":     [ 66, 165, 245],   # sky blue
+    "HighGrowth": [171,  71, 188],   # purple
+    "Mature":     [ 38, 198, 218],   # cyan
+    "Other":      [ 30, 111, 212],   # navy blue (matches theme, visible on dark map)
 }
 
 
@@ -61,9 +61,9 @@ if not has_geo:
 df_map = df_filtered[df_filtered["lat"].notna()].copy()
 
 df_map["color"] = df_map["category_2024"].map(CATEGORY_RGB).apply(
-    lambda c: c if isinstance(c, list) else [80, 80, 80]
+    lambda c: c if isinstance(c, list) else [30, 111, 212]
 )
-df_map["radius"] = (df_map["employees_2024"].fillna(50) / 50).clip(4, 60)
+df_map["radius"] = (df_map["employees_2024"].fillna(50) / 50).clip(16, 60)
 df_map["emp_str"] = df_map["employees_2024"].apply(
     lambda v: f"{int(v):,}" if pd.notna(v) else "n/a"
 )
@@ -126,6 +126,27 @@ for col, (cat, rgb) in zip(lcols, CATEGORY_RGB.items()):
         f'<span style="font-size:12px;color:#F7F8F7;">{cat} ({n})</span>',
         unsafe_allow_html=True,
     )
+
+# Size legend
+st.markdown(
+    '<div style="display:flex;align-items:center;gap:24px;margin-top:6px;">'
+    '<span style="font-size:11px;color:rgba(247,248,247,.5);text-transform:uppercase;'
+    'letter-spacing:.1em;">Circle size = employees 2024</span>'
+    '<span style="display:flex;align-items:center;gap:6px;">'
+    '<span style="display:inline-block;width:8px;height:8px;background:#aaa;border-radius:50%;opacity:.7;"></span>'
+    '<span style="font-size:11px;color:rgba(247,248,247,.5);">~800</span>'
+    '</span>'
+    '<span style="display:flex;align-items:center;gap:6px;">'
+    '<span style="display:inline-block;width:14px;height:14px;background:#aaa;border-radius:50%;opacity:.7;"></span>'
+    '<span style="font-size:11px;color:rgba(247,248,247,.5);">~3,000</span>'
+    '</span>'
+    '<span style="display:flex;align-items:center;gap:6px;">'
+    '<span style="display:inline-block;width:22px;height:22px;background:#aaa;border-radius:50%;opacity:.7;"></span>'
+    '<span style="font-size:11px;color:rgba(247,248,247,.5);">50,000+</span>'
+    '</span>'
+    '</div>',
+    unsafe_allow_html=True,
+)
 
 n_missing = df_filtered["lat"].isna().sum() if "lat" in df_filtered.columns else 0
 st.caption(f"Showing {len(df_map):,} geocoded firms · {n_missing} without coordinates")
