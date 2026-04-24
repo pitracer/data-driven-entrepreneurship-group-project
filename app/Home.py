@@ -132,4 +132,5 @@ with col_r:
     st.page_link("pages/3_Firm_Explorer.py",   label=" Firm Explorer — search all 1,555 firms")
     st.page_link("pages/4_Leadership.py",      label=" Leadership Profile — Orbis management data")
     st.page_link("pages/6_Stats.py",           label=" Stats — regression analysis of scaling factors")
+    st.page_link("pages/7_Clusters.py",        label=" Clusters — business archetype and growth strategy")
     st.page_link("pages/5_Chat.py",            label=" Chat — ask questions about the data")
