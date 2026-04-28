@@ -22,3 +22,8 @@ venv/
 # OS
 .DS_Store
 *.Zone.Identifier
+
+# Next.js web app
+web/node_modules/
+web/.next/
+web/.env.local
