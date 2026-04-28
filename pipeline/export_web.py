@@ -21,9 +21,10 @@ from pathlib import Path
 
 warnings.filterwarnings("ignore")
 
-from pipeline.config import FIRMS_ENRICHED, FIRMS_CLEAN, SECTOR_NARRATIVES, ROOT, ensure_dirs
+from pipeline.config import FIRMS_ENRICHED, FIRMS_CLEAN, SECTOR_NARRATIVES, ROOT, DATA_FINAL, ensure_dirs
 
 WEB_DATA = ROOT / "web" / "public" / "data"
+ENRICHED_XLSX = DATA_FINAL / "enriched.xlsx"
 
 
 def _ensure_web_data_dir() -> None:
@@ -66,8 +67,21 @@ KEEP_COLS = [
 
 
 def export_firms() -> pd.DataFrame:
-    print("[export_web] Loading firms_enriched...")
-    df = pd.read_parquet(FIRMS_ENRICHED) if FIRMS_ENRICHED.exists() else pd.read_parquet(FIRMS_CLEAN)
+    # Prefer enriched.xlsx (manual adjustments + complete cluster data) over parquet
+    if ENRICHED_XLSX.exists():
+        print(f"[export_web] Loading {ENRICHED_XLSX.name} (source of truth)...")
+        df = pd.read_excel(ENRICHED_XLSX, engine="openpyxl")
+        # Drop internal index column if present
+        df = df.drop(columns=["orig_idx"], errors="ignore")
+        # Sync back to parquet so downstream pipeline steps stay in sync
+        df.to_parquet(FIRMS_ENRICHED, index=False)
+        print(f"[export_web] Synced enriched.xlsx → firms_enriched.parquet")
+    elif FIRMS_ENRICHED.exists():
+        print("[export_web] Loading firms_enriched.parquet...")
+        df = pd.read_parquet(FIRMS_ENRICHED)
+    else:
+        print("[export_web] Loading firms_clean.parquet (fallback)...")
+        df = pd.read_parquet(FIRMS_CLEAN)
 
     # Only keep columns that exist
     cols = [c for c in KEEP_COLS if c in df.columns]
