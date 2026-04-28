@@ -18,6 +18,12 @@ function hexToRgb(hex: string): [number, number, number] {
   return [r, g, b]
 }
 
+function markerRadius(firm: Firm): number {
+  const employees = Math.max(0, firm.employees_2024 ?? 0)
+  const categoryBoost = firm.category_2024 === "Gazelle" ? 3 : firm.category_2024 === "Scaler" ? 2 : 0
+  return Math.min(18, Math.max(4, Math.log1p(employees) * 1.15 + categoryBoost))
+}
+
 export default function DeckMap({ firms }: Props) {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; firm: Firm } | null>(null)
 
@@ -25,10 +31,15 @@ export default function DeckMap({ firms }: Props) {
     id: "firms",
     data: firms,
     getPosition: f => [f.lon!, f.lat!],
-    getRadius: f => Math.max(50, Math.sqrt((f.employees_2024 ?? 10)) * 15),
-    getFillColor: f => [...hexToRgb(CATEGORY_COLORS[f.category_2024 ?? "Other"] ?? "#94A3B8"), 180] as [number,number,number,number],
+    getRadius: markerRadius,
+    getFillColor: f => [...hexToRgb(CATEGORY_COLORS[f.category_2024 ?? "Other"] ?? "#94A3B8"), 150] as [number,number,number,number],
+    getLineColor: [255, 255, 255, 210],
+    getLineWidth: 1,
     pickable: true,
-    radiusUnits: "meters",
+    stroked: true,
+    radiusUnits: "pixels",
+    radiusMinPixels: 4,
+    radiusMaxPixels: 18,
     onHover: info => {
       if (info.object) setTooltip({ x: info.x, y: info.y, firm: info.object })
       else setTooltip(null)

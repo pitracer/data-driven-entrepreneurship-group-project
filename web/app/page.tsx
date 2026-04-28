@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { getFirms, computeKPIs } from "@/lib/data"
-import type { Firm, KPIs } from "@/lib/types"
+import type { KPIs } from "@/lib/types"
 
 const NAV_CARDS = [
   { href: "/map",        icon: "📍", title: "Map",        desc: "Geocoded firm locations across Düsseldorf" },
@@ -43,7 +43,7 @@ export default function HomePage() {
 
       {/* KPI row */}
       <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Key Metrics — 2024</p>
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-10">
         {[
           { label: "Total Firms",    value: kpis ? kpis.total_firms.toLocaleString() : "…", sub: "unique BvD IDs" },
           { label: "Gazelles",       value: kpis ? String(kpis.n_gazelles) : "…",           sub: "≥20% growth/year" },

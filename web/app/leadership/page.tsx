@@ -73,14 +73,14 @@ export default function LeadershipPage() {
   const nOrbis     = firms.filter(f => f.orbis_revenue_latest != null).length
 
   return (
-    <div className="flex gap-8">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
       <Sidebar firms={allFirms} />
       <div className="flex-1 min-w-0">
         <h1 className="text-3xl font-bold mb-1" style={{ fontFamily: "Rajdhani, sans-serif" }}>Leadership Profile</h1>
         <p className="text-slate-500 text-sm mb-6">Management quality and financial health by firm category</p>
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-8">
           {[
             { label: "Gazelle Mgmt Age", value: gazelleAge ? gazelleAge.toFixed(1) : "—", sub: `vs ${otherAge ? otherAge.toFixed(1) : "—"} other firms` },
             { label: "PhD in Gazelles",  value: `${gazellePhd.toFixed(1)}%`, sub: `vs ${otherPhd.toFixed(1)}% other firms` },

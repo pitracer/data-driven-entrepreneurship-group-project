@@ -13,6 +13,8 @@ Usage:
 from __future__ import annotations
 
 import json
+import math
+import os
 import shutil
 import warnings
 import numpy as np
@@ -29,6 +31,31 @@ ENRICHED_XLSX = DATA_FINAL / "enriched.xlsx"
 
 def _ensure_web_data_dir() -> None:
     WEB_DATA.mkdir(parents=True, exist_ok=True)
+
+
+def _json_safe(value):
+    """Convert pandas/numpy scalars and missing values into strict JSON values."""
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, tuple):
+        return [_json_safe(v) for v in value]
+    if value is None:
+        return None
+    if isinstance(value, (np.bool_, bool)):
+        return bool(value)
+    if isinstance(value, (np.integer,)):
+        return int(value)
+    if isinstance(value, (np.floating, float)):
+        number = float(value)
+        return number if math.isfinite(number) else None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    return value
 
 
 # ---------------------------------------------------------------------------
@@ -103,9 +130,9 @@ def export_firms() -> pd.DataFrame:
         df[col] = df[col].round(2)
 
     out = WEB_DATA / "firms.json"
-    records = df.where(df.notna(), None).to_dict(orient="records")
+    records = df.astype(object).where(pd.notna(df), None).to_dict(orient="records")
     with open(out, "w", encoding="utf-8") as f:
-        json.dump(records, f, ensure_ascii=False, separators=(",", ":"))
+        json.dump(_json_safe(records), f, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
     size_mb = out.stat().st_size / 1_000_000
     print(f"[export_web] firms.json → {len(records)} rows, {size_mb:.1f} MB")
     return df
@@ -121,6 +148,10 @@ def export_sector_narratives() -> None:
 
 
 def export_embeddings(df: pd.DataFrame) -> None:
+    if os.getenv("EXPORT_EMBEDDINGS") != "1":
+        print("[export_web] Skipping embeddings (set EXPORT_EMBEDDINGS=1 to generate them)")
+        return
+
     print("[export_web] Computing embeddings for chat search...")
     try:
         from sentence_transformers import SentenceTransformer
@@ -154,7 +185,7 @@ def export_embeddings(df: pd.DataFrame) -> None:
 
     out = WEB_DATA / "embeddings.json"
     with open(out, "w") as f:
-        json.dump(records, f, separators=(",", ":"))
+        json.dump(_json_safe(records), f, separators=(",", ":"), allow_nan=False)
     size_mb = out.stat().st_size / 1_000_000
     print(f"[export_web] embeddings.json → {len(records)} vectors, {size_mb:.1f} MB")
 
@@ -246,7 +277,7 @@ def export_stats(df: pd.DataFrame) -> None:
 
     out = WEB_DATA / "stats.json"
     with open(out, "w") as f:
-        json.dump(results_out, f, separators=(",", ":"))
+        json.dump(_json_safe(results_out), f, separators=(",", ":"), allow_nan=False)
     print(f"[export_web] stats.json → regression + correlation data")
 
 

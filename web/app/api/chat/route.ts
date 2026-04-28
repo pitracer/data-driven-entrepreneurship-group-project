@@ -2,12 +2,24 @@ import { NextRequest, NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { readFileSync } from "fs"
 import { join } from "path"
+import type { Firm } from "@/lib/types"
 import type { EmbeddingRecord } from "@/lib/search"
-import { findTopK, keywordSearch } from "@/lib/search"
+import { keywordSearch } from "@/lib/search"
 
 // Load static data at module level (cached between invocations on warm lambda)
-let _firms: any[] | null = null
+let _firms: Firm[] | null = null
 let _embeddings: EmbeddingRecord[] | null = null
+
+interface ChatMessage {
+  role: "user" | "assistant"
+  content: string
+}
+
+interface ChatRequest {
+  messages?: ChatMessage[]
+  apiKey?: string
+  query?: string
+}
 
 function loadFirms() {
   if (!_firms) {
@@ -28,7 +40,7 @@ function loadEmbeddings(): EmbeddingRecord[] | null {
   }
 }
 
-function buildContext(firms: any[]): string {
+function buildContext(firms: Firm[]): string {
   return firms.map(f => {
     const parts = [
       `**${f.company_name}** (${f.category_2024 ?? "Other"}, NACE ${f.nace_letter ?? "?"})`,
@@ -44,6 +56,21 @@ function buildContext(firms: any[]): string {
   }).join("\n")
 }
 
+function buildDatasetSummary(firms: Firm[]): string {
+  const gazelles = firms.filter(f => f.gazelle_2024).length
+  const scalers = firms.filter(f => f.scaler_2024).length
+  const sectors = new Set(firms.map(f => f.nace_letter).filter(Boolean)).size
+  const geocoded = firms.filter(f => f.lat != null && f.lon != null).length
+
+  return [
+    `Dataset: ${firms.length.toLocaleString()} Düsseldorf firms`,
+    `${gazelles} Gazelles`,
+    `${scalers} Scalers`,
+    `${sectors} NACE sectors`,
+    `${geocoded.toLocaleString()} firms with map coordinates`,
+  ].join(" | ")
+}
+
 const SYSTEM_PROMPT = `You are a business analyst specializing in the Düsseldorf startup and SME ecosystem.
 You have access to data on 1,555 firms in Düsseldorf, Germany — including Gazelles (≥20% annual growth),
 Scalers (sustained high growth), and other categories.
@@ -54,7 +81,7 @@ Keep answers concise (3-6 sentences) unless asked for detail.`
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, apiKey, query } = await req.json()
+    const { messages = [], apiKey, query } = await req.json() as ChatRequest
 
     if (!apiKey) {
       return NextResponse.json({ error: "Groq API key required" }, { status: 401 })
@@ -64,32 +91,29 @@ export async function POST(req: NextRequest) {
     const embeddings = loadEmbeddings()
 
     // Get the latest user message for retrieval
-    const userQuery = query ?? messages?.findLast((m: any) => m.role === "user")?.content ?? ""
+    const userQuery = query ?? messages.findLast((m) => m.role === "user")?.content ?? ""
 
     // Retrieve relevant firms — use embeddings if available, keyword search as fallback
-    let topBvdIds: string[]
-    if (embeddings && embeddings.length > 0) {
-      // Simple keyword-based query embedding approximation:
-      // Use keyword search as primary (embeddings need an online model at query time)
-      // For a production app you'd call an embedding API here
-      topBvdIds = keywordSearch(userQuery, firms, 5)
-      if (topBvdIds.length === 0) {
-        // Fall back to random sample of priority firms
-        topBvdIds = firms.filter((f: any) => f.priority_enrich).slice(0, 5).map((f: any) => f.bvd_id)
-      }
-    } else {
-      topBvdIds = keywordSearch(userQuery, firms, 5)
+    let topBvdIds = keywordSearch(userQuery, firms, 12)
+    if (embeddings && embeddings.length > 0 && topBvdIds.length === 0) {
+      topBvdIds = firms.filter(f => f.priority_enrich).slice(0, 12).map(f => f.bvd_id)
     }
 
-    const topFirms = topBvdIds.map((id: string) => firms.find((f: any) => f.bvd_id === id)).filter(Boolean)
-    const context = buildContext(topFirms)
+    const topFirms = topBvdIds
+      .map((id: string) => firms.find(f => f.bvd_id === id))
+      .filter((firm): firm is Firm => Boolean(firm))
+    const context = [
+      buildDatasetSummary(firms),
+      "Relevant firms:",
+      buildContext(topFirms) || "No firm-level matches found for this query.",
+    ].join("\n")
 
     const groq = new Groq({ apiKey })
 
     const chatMessages = [
       { role: "system" as const, content: SYSTEM_PROMPT },
       { role: "user" as const, content: `Context — relevant firms:\n${context}` },
-      ...(messages ?? []).map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content })),
+      ...messages.map(m => ({ role: m.role, content: m.content })),
     ]
 
     const completion = await groq.chat.completions.create({
@@ -101,7 +125,7 @@ export async function POST(req: NextRequest) {
 
     const answer = completion.choices[0].message.content ?? ""
 
-    const sources = topFirms.map((f: any) => ({
+    const sources = topFirms.map(f => ({
       bvd_id: f.bvd_id,
       company_name: f.company_name,
       category_2024: f.category_2024,
@@ -109,8 +133,9 @@ export async function POST(req: NextRequest) {
     }))
 
     return NextResponse.json({ answer, sources })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[api/chat]", err)
-    return NextResponse.json({ error: err.message ?? "Unknown error" }, { status: 500 })
+    const message = err instanceof Error ? err.message : "Unknown error"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

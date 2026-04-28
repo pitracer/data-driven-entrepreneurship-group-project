@@ -7,9 +7,18 @@ import Sidebar from "@/components/Sidebar"
 import { useFilterStore } from "@/lib/store"
 import { filterFirms } from "@/lib/data"
 
+type RawSectorNarrative = string | {
+  sector_name?: string
+  name?: string
+  narrative?: string
+  text?: string
+  n_gazelles?: number
+  n_scalers?: number
+}
+
 export default function SectorsPage() {
   const [allFirms, setAllFirms] = useState<Firm[]>([])
-  const [narratives, setNarratives] = useState<Record<string, any>>({})
+  const [narratives, setNarratives] = useState<Record<string, RawSectorNarrative>>({})
   const filters = useFilterStore()
 
   useEffect(() => {
@@ -35,6 +44,18 @@ export default function SectorsPage() {
       .slice(0, 15)
   }, [firms])
 
+  const sectorCounts = useMemo(() => {
+    const map: Record<string, { n_gazelles: number; n_scalers: number; sector_name: string }> = {}
+    firms.forEach(f => {
+      const s = f.nace_letter ?? "?"
+      if (!map[s]) map[s] = { n_gazelles: 0, n_scalers: 0, sector_name: f.nace_section ?? "" }
+      if (f.gazelle_2024) map[s].n_gazelles++
+      if (f.scaler_2024) map[s].n_scalers++
+      if (!map[s].sector_name && f.nace_section) map[s].sector_name = f.nace_section
+    })
+    return map
+  }, [firms])
+
   // Employee trend data (top 3 sectors by total employees 2024)
   const trendData = useMemo(() => {
     const totals: Record<string, number> = {}
@@ -57,7 +78,7 @@ export default function SectorsPage() {
   const COLORS = ["#1E6FD4", "#FFD700", "#64B5F6", "#34D399", "#F87171"]
 
   return (
-    <div className="flex gap-8">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
       <Sidebar firms={allFirms} />
       <div className="flex-1 min-w-0">
         <h1 className="text-3xl font-bold mb-1" style={{ fontFamily: "Rajdhani, sans-serif" }}>Sector Analysis</h1>
@@ -94,17 +115,25 @@ export default function SectorsPage() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">AI Sector Intelligence</p>
             <div className="space-y-3">
-              {Object.entries(narratives).map(([letter, n]: [string, any]) => (
-                <details key={letter} className="border border-slate-200 rounded-xl overflow-hidden">
-                  <summary className="px-4 py-3 bg-slate-50 cursor-pointer text-sm font-medium text-slate-700 flex justify-between items-center">
-                    <span>Sector {letter} — {n.sector_name ?? n.name ?? ""}</span>
-                    <span className="text-xs text-slate-400">{n.n_gazelles ?? 0} Gazelles · {n.n_scalers ?? 0} Scalers</span>
-                  </summary>
-                  <div className="px-4 py-3 border-l-4 border-blue-500 bg-blue-50/50 text-sm text-slate-700">
-                    {n.narrative ?? n.text ?? "No narrative available."}
-                  </div>
-                </details>
-              ))}
+              {Object.entries(narratives).map(([letter, n]) => {
+                const meta = sectorCounts[letter]
+                const sectorName = typeof n === "string" ? meta?.sector_name : (n.sector_name ?? n.name ?? meta?.sector_name)
+                const narrative = typeof n === "string" ? n : (n.narrative ?? n.text ?? "No narrative available.")
+                const nGazelles = typeof n === "string" ? meta?.n_gazelles : (n.n_gazelles ?? meta?.n_gazelles)
+                const nScalers = typeof n === "string" ? meta?.n_scalers : (n.n_scalers ?? meta?.n_scalers)
+
+                return (
+                  <details key={letter} className="border border-slate-200 rounded-xl overflow-hidden">
+                    <summary className="px-4 py-3 bg-slate-50 cursor-pointer text-sm font-medium text-slate-700 flex justify-between items-center gap-4">
+                      <span>Sector {letter}{sectorName ? ` — ${sectorName}` : ""}</span>
+                      <span className="text-xs text-slate-400 whitespace-nowrap">{nGazelles ?? 0} Gazelles · {nScalers ?? 0} Scalers</span>
+                    </summary>
+                    <div className="px-4 py-3 border-l-4 border-blue-500 bg-blue-50/50 text-sm text-slate-700">
+                      {narrative}
+                    </div>
+                  </details>
+                )
+              })}
             </div>
           </div>
         )}

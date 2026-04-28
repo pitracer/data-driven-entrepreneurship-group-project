@@ -46,7 +46,7 @@ export default function ClustersPage() {
 
   if (!withClusters.length) {
     return (
-      <div className="flex gap-8">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
         <Sidebar firms={allFirms} />
         <div className="flex-1">
           <h1 className="text-3xl font-bold mb-4" style={{ fontFamily: "Rajdhani, sans-serif" }}>Business Clusters</h1>
@@ -59,7 +59,7 @@ export default function ClustersPage() {
   }
 
   return (
-    <div className="flex gap-8">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
       <Sidebar firms={allFirms} />
       <div className="flex-1 min-w-0">
         <h1 className="text-3xl font-bold mb-1" style={{ fontFamily: "Rajdhani, sans-serif" }}>Business Clusters</h1>

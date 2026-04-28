@@ -24,7 +24,7 @@ export default function StatsPage() {
   const result = stats ? (useEquity ? stats.with_equity : stats.without_equity) : null
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl min-w-0">
       <h1 className="text-3xl font-bold mb-1" style={{ fontFamily: "Rajdhani, sans-serif" }}>What Makes a Firm Scale?</h1>
       <p className="text-slate-500 text-sm mb-6">
         Logistic regression and correlation analysis identifying which structural factors
@@ -36,7 +36,7 @@ export default function StatsPage() {
       ) : (
         <>
           {/* KPIs */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
             {[
               { label: "Growth firms (target=1)", value: result.n_growth, sub: `${(result.n_growth / result.n_firms * 100).toFixed(1)}% of sample` },
               { label: "Non-growth firms (target=0)", value: result.n_firms - result.n_growth, sub: "" },
@@ -63,7 +63,8 @@ export default function StatsPage() {
 
           {/* Results table */}
           <div className="border border-slate-200 rounded-xl overflow-hidden mb-6">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[620px] text-sm">
               <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide">
                 <tr>
                   {["Feature", "Coef (std)", "Odds Ratio", "p-value"].map(h => (
@@ -85,6 +86,7 @@ export default function StatsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Coefficient plot */}

@@ -41,7 +41,7 @@ export default function FirmCard({ firm, onClose }: Props) {
         </div>
 
         {/* KPI row */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           <div className="bg-slate-50 rounded-lg p-3 text-center">
             <p className="text-xs text-slate-500 uppercase tracking-wide">Employees 2024</p>
             <p className="text-xl font-bold text-slate-900">{fmt(firm.employees_2024)}</p>
@@ -69,7 +69,7 @@ export default function FirmCard({ firm, onClose }: Props) {
         {(firm.orbis_revenue_latest || firm.orbis_profit_latest) && (
           <div className="mb-4">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Financials</p>
-            <div className="flex gap-4 text-sm">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 text-sm">
               <span className="text-slate-600">Revenue: <strong>{fmtM(firm.orbis_revenue_latest)}</strong></span>
               <span className="text-slate-600">Profit: <strong>{fmtM(firm.orbis_profit_latest)}</strong></span>
               {firm.orbis_equity_ratio_latest != null && (

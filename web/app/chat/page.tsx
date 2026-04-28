@@ -1,7 +1,5 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
-import { getFirms } from "@/lib/data"
-import type { Firm } from "@/lib/types"
 import CategoryBadge from "@/components/CategoryBadge"
 
 interface Message { role: "user" | "assistant"; content: string }
@@ -20,10 +18,8 @@ export default function ChatPage() {
   const [sources, setSources] = useState<Source[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
-  const [allFirms, setAllFirms] = useState<Firm[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { getFirms().then(setAllFirms) }, [])
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages])
 
   async function send(text: string) {
@@ -42,7 +38,7 @@ export default function ChatPage() {
       const data = await res.json()
       setMessages(prev => [...prev, { role: "assistant", content: data.answer }])
       setSources(data.sources ?? [])
-    } catch (e) {
+    } catch {
       setMessages(prev => [...prev, { role: "assistant", content: "Error — check your Groq API key and try again." }])
     } finally {
       setLoading(false)
@@ -50,9 +46,9 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex gap-8 h-[calc(100vh-120px)]">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-8 lg:h-[calc(100vh-120px)]">
       {/* Sidebar */}
-      <aside className="w-56 flex-shrink-0 space-y-4">
+      <aside className="w-full lg:w-56 flex-shrink-0 space-y-4 border border-slate-200 rounded-xl p-3 lg:border-0 lg:rounded-none lg:p-0">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Groq API Key</p>
           <input
@@ -67,7 +63,7 @@ export default function ChatPage() {
 
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Suggested questions</p>
-          <div className="space-y-1">
+          <div className="grid sm:grid-cols-2 lg:block gap-1">
             {SUGGESTIONS.map(s => (
               <button
                 key={s}
@@ -98,7 +94,7 @@ export default function ChatPage() {
       </aside>
 
       {/* Chat */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-[520px]">
         <div className="flex-1 overflow-y-auto space-y-4 pb-4">
           {messages.length === 0 && (
             <div className="text-center py-16 text-slate-400">
@@ -110,7 +106,7 @@ export default function ChatPage() {
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
-                className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm
+                className={`max-w-[88%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-sm
                   ${m.role === "user"
                     ? "bg-blue-600 text-white"
                     : "bg-slate-100 text-slate-800 border border-slate-200"
@@ -130,7 +126,7 @@ export default function ChatPage() {
           <div ref={bottomRef} />
         </div>
 
-        <div className="flex gap-2 pt-4 border-t border-slate-200">
+        <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-slate-200">
           <input
             type="text"
             placeholder={apiKey ? "Ask about the firms…" : "Enter your Groq API key first"}

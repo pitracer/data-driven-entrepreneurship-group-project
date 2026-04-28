@@ -32,13 +32,13 @@ export default function FirmsPage() {
   }, [allFirms, filters, search, sortKey])
 
   return (
-    <div className="flex gap-8">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
       <Sidebar firms={allFirms} />
       <div className="flex-1 min-w-0">
         <h1 className="text-3xl font-bold mb-1" style={{ fontFamily: "Rajdhani, sans-serif" }}>Firm Explorer</h1>
         <p className="text-slate-500 text-sm mb-6">Search and explore all {allFirms.length.toLocaleString()} firms</p>
 
-        <div className="flex gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <input
             type="text"
             placeholder="Search by company name…"

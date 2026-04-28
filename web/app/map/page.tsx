@@ -23,16 +23,16 @@ export default function MapPage() {
   const missing = firms.length - geocoded.length
 
   return (
-    <div className="flex gap-8 h-[calc(100vh-120px)]">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-8 lg:h-[calc(100vh-120px)]">
       <Sidebar firms={allFirms} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="mb-3 flex items-center justify-between">
+      <div className="flex-1 flex flex-col min-w-0 min-h-[520px]">
+        <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold" style={{ fontFamily: "Rajdhani, sans-serif" }}>Firm Map</h1>
             <p className="text-slate-500 text-sm">{geocoded.length} geocoded · {missing} missing coordinates</p>
           </div>
           {/* Legend */}
-          <div className="flex gap-3 text-xs">
+          <div className="flex flex-wrap gap-3 text-xs">
             {Object.entries(CATEGORY_COLORS).map(([cat, color]) => (
               <div key={cat} className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
@@ -41,7 +41,7 @@ export default function MapPage() {
             ))}
           </div>
         </div>
-        <div className="flex-1 rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+        <div className="flex-1 min-h-[440px] rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
           <DeckMap firms={geocoded} />
         </div>
       </div>
