@@ -32,6 +32,7 @@ from pipeline.config import (
     CACHE_SERP,
     DATA_FINAL,
     DATA_PROCESSED,
+    FIRM_SIGNALS,
     FIRMS_CLEAN,
     FIRMS_ENRICHED,
     FIRMS_ENRICHED_PROCESSED,
@@ -233,6 +234,20 @@ def _merge_enriched() -> None:
             df["website"] = None
         mask_web = df["website"].isna() & df["orbis_website"].notna()
         df.loc[mask_web, "website"] = df.loc[mask_web, "orbis_website"]
+
+    # Merge signal clusters if available (from step_07/08)
+    if FIRM_SIGNALS.exists():
+        signal_cols = [
+            "bvd_id",
+            "business_model_refined", "target_segment", "value_proposition_keywords",
+            "scaling_signal_score", "scaling_types", "growth_evidence",
+            "digital_leverage_score", "has_careers", "has_content_engine", "has_product_platform",
+            "archetype_cluster", "growth_cluster",
+        ]
+        signals = pd.read_parquet(FIRM_SIGNALS)
+        avail_cols = [c for c in signal_cols if c in signals.columns]
+        df = df.merge(signals[avail_cols], on="bvd_id", how="left")
+        print(f"  Merged {len(signals)} signal rows from firm_signals.parquet")
 
     df.to_parquet(FIRMS_ENRICHED_PROCESSED, index=False)
     DATA_FINAL.mkdir(parents=True, exist_ok=True)

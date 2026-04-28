@@ -1,16 +1,18 @@
 """
-Step 02 — SerpAPI enrichment: website, address, snippet.
+Step 02 — web search enrichment: website, address, snippet.
 
-For each firm (priority firms first), queries SerpAPI for
-'"{company_name}" Düsseldorf' and extracts website, address, and snippet.
+Supports two providers:
+  - serpapi  : original SerpAPI (100 calls/month free tier)
+  - serper   : Serper.dev (2,500 calls/account free tier, multi-key pooling)
 
-All results are cached — re-running never burns an extra API call.
-On the free tier (100 calls/month) run with --limit 100 to stay in budget.
+All results are cached (MD5 of query string) — re-running never burns extra API calls.
 
 Usage:
-    python -m pipeline.step_02_search            # all priority firms
-    python -m pipeline.step_02_search --limit 5  # test run (5 calls max)
-    python -m pipeline.step_02_search --all       # every firm (1,555 calls)
+    python -m pipeline.step_02_search                          # serper, priority firms
+    python -m pipeline.step_02_search --all-firms              # serper, all 1,555 firms
+    python -m pipeline.step_02_search --limit 5                # test run
+    python -m pipeline.step_02_search --provider serpapi       # use SerpAPI instead
+    python -m pipeline.step_02_search --no-snippet-filter      # re-search even cached firms
 """
 from __future__ import annotations
 
@@ -19,54 +21,96 @@ import sys
 import time
 
 import pandas as pd
-from serpapi import GoogleSearch
+import requests
 
 from pipeline.cache import FileCache
 from pipeline.config import (
     CACHE_SERP,
     FIRMS_CLEAN,
+    FIRMS_ENRICHED,
     DATA_PROCESSED,
     SERPAPI_KEY,
+    SERPER_KEYS,
     ensure_dirs,
 )
+from pipeline.key_pool import ExhaustPool
 
 # Output file
 SEARCH_RESULTS = DATA_PROCESSED / "search_results.parquet"
 
 
-def _search(company_name: str, cache: FileCache) -> dict:
-    """Run one SerpAPI query (or return cached result)."""
-    query = f'"{company_name}" Düsseldorf'
-    cached = cache.get(query)
-    if cached is not None:
-        return cached
+# ---------------------------------------------------------------------------
+# Serper provider
+# ---------------------------------------------------------------------------
 
+def _search_serper(query: str, api_key: str) -> dict:
+    """
+    Call Serper API and normalise the response to SerpAPI shape.
+
+    The normalised shape is what _extract() already understands, so no changes
+    are needed downstream.
+    """
+    resp = requests.post(
+        "https://google.serper.dev/search",
+        headers={"X-API-KEY": api_key, "Content-Type": "application/json"},
+        json={"q": query, "gl": "de", "hl": "de", "num": 3},
+        timeout=15,
+    )
+    resp.raise_for_status()
+    raw = resp.json()
+
+    organic = [
+        {"link": r.get("link"), "snippet": r.get("snippet")}
+        for r in raw.get("organic", [])
+    ]
+    kg = raw.get("knowledgeGraph", {})
+    knowledge_graph: dict = {}
+    if kg:
+        knowledge_graph = {
+            "website":     kg.get("website"),
+            "address":     kg.get("address"),
+            "description": kg.get("description"),
+        }
+
+    return {
+        "organic_results":  organic,
+        "knowledge_graph":  knowledge_graph,
+        "search_metadata":  {"status": "Success", "provider": "serper"},
+    }
+
+
+# ---------------------------------------------------------------------------
+# SerpAPI provider (original)
+# ---------------------------------------------------------------------------
+
+def _search_serpapi(query: str, api_key: str) -> dict:
+    from serpapi import GoogleSearch
     params = {
         "q": query,
-        "api_key": SERPAPI_KEY,
+        "api_key": api_key,
         "num": 3,
         "hl": "de",
         "gl": "de",
     }
-    result = GoogleSearch(params).get_dict()
-    cache.set(query, result)
-    return result
+    return GoogleSearch(params).get_dict()
 
+
+# ---------------------------------------------------------------------------
+# Extraction (provider-agnostic — works on normalised/original SerpAPI shape)
+# ---------------------------------------------------------------------------
 
 def _extract(raw: dict) -> dict:
-    """Pull website, address, and snippet from a SerpAPI response dict."""
+    """Pull website, address, and snippet from a (normalised) SerpAPI response dict."""
     website = None
     address = None
     snippet = None
 
-    # Knowledge graph (highest quality source)
     kg = raw.get("knowledge_graph", {})
     if kg:
         website = kg.get("website") or kg.get("official_website")
         address = kg.get("address")
         snippet = kg.get("description")
 
-    # Organic results fallback
     organic = raw.get("organic_results", [])
     if organic:
         top = organic[0]
@@ -75,7 +119,6 @@ def _extract(raw: dict) -> dict:
         if not snippet:
             snippet = top.get("snippet")
 
-    # Answer box fallback
     answer_box = raw.get("answer_box", {})
     if answer_box and not address:
         address = answer_box.get("address")
@@ -88,32 +131,58 @@ def _extract(raw: dict) -> dict:
     }
 
 
-def run(limit: int | None = None, all_firms: bool = False) -> pd.DataFrame:
+# ---------------------------------------------------------------------------
+# Main run
+# ---------------------------------------------------------------------------
+
+def run(
+    limit: int | None = None,
+    offset: int = 0,
+    all_firms: bool = False,
+    provider: str = "serper",
+    snippet_only: bool = True,
+) -> pd.DataFrame:
     ensure_dirs()
 
     df = pd.read_parquet(FIRMS_CLEAN)
     cache = FileCache(CACHE_SERP)
 
-    # Ordering: priority firms first, then rest (if --all)
+    # Ordering: priority firms first, then rest (if --all-firms)
     priority = df[df["priority_enrich"]].copy()
     others = df[~df["priority_enrich"]].copy()
     queue = pd.concat([priority, others]) if all_firms else priority
 
-    if limit:
-        # Don't count already-cached firms against the limit
-        uncached_mask = queue["company_name"].apply(
-            lambda n: not cache.exists(f'"{n}" Düsseldorf')
-        )
-        uncached_count = uncached_mask.sum()
-        print(f"[step_02] {len(cache)} already cached, "
-              f"{uncached_count} new calls needed, limit={limit}")
-    else:
-        print(f"[step_02] {len(cache)} already cached, "
-              f"processing {len(queue)} firms")
+    # Apply offset/limit on the FULL ordered list (before cache filtering)
+    # so that teammates can each take an explicit, non-overlapping slice.
+    if offset or limit:
+        end = (offset + limit) if limit else None
+        queue = queue.iloc[offset:end]
+        print(f"[step_02] Slice: firms [{offset}:{end}] ({len(queue)} firms)")
 
-    if not SERPAPI_KEY and limit != 0:
-        print("[step_02] ERROR: SERPAPI_KEY not set in .env — aborting")
-        sys.exit(1)
+    # If snippet_only: skip firms that are already cached within this slice
+    if snippet_only:
+        queue = queue[
+            queue["company_name"].apply(
+                lambda n: not cache.exists(f'"{n}" Düsseldorf')
+            )
+        ]
+
+    print(f"[step_02] Provider: {provider}")
+    print(f"[step_02] {len(cache)} already cached")
+    print(f"[step_02] {len(queue)} firms to process this run")
+
+    # Set up key pool
+    if provider == "serper":
+        if not SERPER_KEYS:
+            print("[step_02] ERROR: SERPER_KEYS not set in .env — aborting")
+            sys.exit(1)
+        pool = ExhaustPool(SERPER_KEYS)
+        print(f"[step_02] Serper key pool: {len(pool)} keys available")
+    else:
+        if not SERPAPI_KEY:
+            print("[step_02] ERROR: SERPAPI_KEY not set in .env — aborting")
+            sys.exit(1)
+        pool = None  # SerpAPI uses a single key
 
     rows = []
     new_calls = 0
@@ -121,46 +190,80 @@ def run(limit: int | None = None, all_firms: bool = False) -> pd.DataFrame:
     for _, firm in queue.iterrows():
         name = firm["company_name"]
         query = f'"{name}" Düsseldorf'
-        is_cached = cache.exists(query)
 
-        if not is_cached:
-            if limit is not None and new_calls >= limit:
-                print(f"[step_02] Limit of {limit} new calls reached — stopping")
+        # Always check cache first regardless of provider
+        cached = cache.get(query)
+        if cached is not None:
+            extracted = _extract(cached)
+            rows.append({"bvd_id": firm["bvd_id"], "company_name": name, **extracted})
+            continue
+
+        # Live API call
+        raw = None
+        if provider == "serper":
+            while not pool.is_exhausted():
+                key = pool.current()
+                try:
+                    raw = _search_serper(query, key)
+                    break
+                except requests.HTTPError as exc:
+                    if exc.response.status_code in (403, 429):
+                        print(f"  [key exhausted / rate-limit] rotating key...")
+                        if not pool.rotate():
+                            print("[step_02] All Serper keys exhausted — stopping")
+                            break
+                    else:
+                        raise
+            if raw is None:
+                print("[step_02] No Serper keys available — stopping")
                 break
-            new_calls += 1
-            time.sleep(1.2)  # stay well under SerpAPI rate limits
+        else:
+            raw = _search_serpapi(query, SERPAPI_KEY)
+            time.sleep(1.2)
 
-        raw = _search(name, cache)
+        cache.set(query, raw)
         extracted = _extract(raw)
-        rows.append({
-            "bvd_id": firm["bvd_id"],
-            "company_name": name,
-            **extracted,
-        })
+        rows.append({"bvd_id": firm["bvd_id"], "company_name": name, **extracted})
+        new_calls += 1
 
-        status = "cache" if is_cached else "api  "
-        print(f"  [{status}] {name[:45]:<45s}  "
-              f"{'✓ website' if extracted['website'] else '✗'}")
+        status = "✓ website" if extracted["website"] else "✗"
+        print(f"  [api ] {name[:50]:<50s}  {status}")
 
-    results = pd.DataFrame(rows)
-    results.to_parquet(SEARCH_RESULTS, index=False, engine="pyarrow")
-
-    found = results["website"].notna().sum()
-    print(f"\n[step_02] Done — {len(results)} firms processed")
-    print(f"[step_02] Websites found: {found} / {len(results)}")
+    print(f"\n[step_02] Done — {len(rows)} firms processed")
     print(f"[step_02] New API calls this run: {new_calls}")
     print(f"[step_02] Total cache size: {len(cache)}")
-    print(f"[step_02] Wrote {SEARCH_RESULTS.name}")
 
+    if not rows:
+        # Return empty with correct columns
+        results = pd.DataFrame(columns=["bvd_id", "company_name", "website", "address", "snippet", "serp_cached"])
+    else:
+        results = pd.DataFrame(rows)
+        found = results["website"].notna().sum()
+        print(f"[step_02] Websites found: {found} / {len(results)}")
+
+    results.to_parquet(SEARCH_RESULTS, index=False, engine="pyarrow")
+    print(f"[step_02] Wrote {SEARCH_RESULTS.name}")
     return results
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int, default=None,
-                        help="Max new API calls this run (default: all priority firms)")
-    parser.add_argument("--all", action="store_true",
-                        help="Process all 1,555 firms, not just priority ones")
+                        help="Max firms to process this run")
+    parser.add_argument("--offset", type=int, default=0,
+                        help="Start from this index in the firm list (for teammate batches)")
+    parser.add_argument("--all-firms", action="store_true",
+                        help="Process all 1,555 firms (default: priority firms only)")
+    parser.add_argument("--provider", choices=["serpapi", "serper"], default="serper",
+                        help="Search provider (default: serper)")
+    parser.add_argument("--no-snippet-filter", action="store_true",
+                        help="Also re-search firms that already have cached results")
     args = parser.parse_args()
-    run(limit=args.limit, all_firms=args.all)
+    run(
+        limit=args.limit,
+        offset=args.offset,
+        all_firms=args.all_firms,
+        provider=args.provider,
+        snippet_only=not args.no_snippet_filter,
+    )
     sys.exit(0)

@@ -20,11 +20,20 @@ DATA_FINAL = ROOT / "data" / "final"       # committed to git — app reads from
 CACHE_SERP = ROOT / "data" / "cache" / "serp"
 CACHE_GEOCODE = ROOT / "data" / "cache" / "geocode"
 CACHE_LLM = ROOT / "data" / "cache" / "llm"
+CACHE_SIGNAL_FOCUS = ROOT / "data" / "cache" / "signal_focus"
+CACHE_SIGNAL_SCALE = ROOT / "data" / "cache" / "signal_scale"
+CACHE_SIGNAL_DIGITAL = ROOT / "data" / "cache" / "signal_digital"
+CACHE_SIGNALS_EXTRACTED = ROOT / "data" / "cache" / "signals_extracted"
 
 
 def ensure_dirs() -> None:
     """Create all required data directories. Call once at the start of each pipeline step."""
-    for _dir in (DATA_RAW, DATA_PROCESSED, DATA_FINAL, CACHE_SERP, CACHE_GEOCODE, CACHE_LLM):
+    for _dir in (
+        DATA_RAW, DATA_PROCESSED, DATA_FINAL,
+        CACHE_SERP, CACHE_GEOCODE, CACHE_LLM,
+        CACHE_SIGNAL_FOCUS, CACHE_SIGNAL_SCALE, CACHE_SIGNAL_DIGITAL,
+        CACHE_SIGNALS_EXTRACTED,
+    ):
         _dir.mkdir(parents=True, exist_ok=True)
 
 # Source / output files
@@ -34,12 +43,22 @@ FIRMS_ENRICHED = DATA_FINAL / "firms_enriched.parquet"      # app reads this
 SECTOR_NARRATIVES = DATA_FINAL / "sector_narratives.json"   # app reads this
 # Pipeline intermediates (local only, gitignored via data/processed/)
 FIRMS_ENRICHED_PROCESSED = DATA_PROCESSED / "firms_enriched.parquet"
+FIRM_SIGNALS = DATA_PROCESSED / "firm_signals.parquet"
 
 # ---------------------------------------------------------------------------
 # API settings (loaded from .env)
 # ---------------------------------------------------------------------------
 SERPAPI_KEY: str = os.getenv("SERPAPI_KEY", "")
+SERPER_KEYS: list[str] = [
+    k.strip() for k in os.getenv("SERPER_KEYS", "").split(",") if k.strip()
+]
+
 GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+GROQ_KEYS: list[str] = [
+    k.strip()
+    for k in os.getenv("GROQ_KEYS", os.getenv("GROQ_API_KEY", "")).split(",")
+    if k.strip()
+]
 
 GROQ_MODEL = "llama-3.3-70b-versatile"
 GROQ_RATE_LIMIT_RPM = 30       # free tier: requests per minute
