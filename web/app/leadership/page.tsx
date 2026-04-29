@@ -23,22 +23,31 @@ export default function LeadershipPage() {
 
   useEffect(() => { getFirms().then(setAllFirms) }, [])
 
-  const cats = ["Gazelle", "Scaler", "HighGrowth", "Mature", "Other"]
-  const colors: Record<string, string> = { Gazelle: "#FFD700", Scaler: "#1E6FD4", HighGrowth: "#64B5F6", Mature: "#78909C", Other: "#94A3B8" }
+  // Only use categories that actually exist in the data to avoid null traces breaking Plotly
+  const cats = ["Gazelle", "Scaler", "Other"]
+  const colors: Record<string, string> = { Gazelle: "#FFD700", Scaler: "#1E6FD4", Other: "#94A3B8" }
 
-  const ageByCategory = cats.map(cat => ({
+  // Single trace (multi-bar) — avoids Plotly null-trace rendering issues
+  const ageByCategory = [{
     type: "bar" as const,
-    name: cat,
-    x: [cat],
-    y: [avg(firms.filter(f => f.category_2024 === cat && f.avg_manager_age != null).map(f => f.avg_manager_age!))],
-    marker: { color: colors[cat] },
-  }))
+    x: cats,
+    y: cats.map(cat => {
+      const vals = firms.filter(f => f.category_2024 === cat && f.avg_manager_age != null).map(f => f.avg_manager_age!)
+      const a = avg(vals)
+      return a != null ? Math.round(a) : null
+    }),
+    marker: { color: cats.map(cat => colors[cat]) },
+  }]
 
-  const phdByCategory = cats.map(cat => {
-    const sub = firms.filter(f => f.category_2024 === cat)
-    const pct = sub.length ? (sub.filter(f => f.has_phd).length / sub.length) * 100 : 0
-    return { type: "bar" as const, name: cat, x: [cat], y: [Math.round(pct * 10) / 10], marker: { color: colors[cat] } }
-  })
+  const phdByCategory = [{
+    type: "bar" as const,
+    x: cats,
+    y: cats.map(cat => {
+      const sub = firms.filter(f => f.category_2024 === cat)
+      return sub.length ? Math.round((sub.filter(f => f.has_phd).length / sub.length) * 1000) / 10 : 0
+    }),
+    marker: { color: cats.map(cat => colors[cat]) },
+  }]
 
   const equityData = cats.map(cat => ({
     type: "box" as const,
@@ -98,11 +107,11 @@ export default function LeadershipPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white border border-slate-200 rounded-xl p-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Avg Manager Age by Category</p>
-            <PlotlyChart data={ageByCategory} layout={{ showlegend: false, yaxis: { title: "Age (years)" } }} height={280} />
+            <PlotlyChart data={ageByCategory} layout={{ showlegend: false, yaxis: { title: "Age (years)", tickformat: ".0f", rangemode: "tozero" } }} height={280} />
           </div>
           <div className="bg-white border border-slate-200 rounded-xl p-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">PhD / Dr Leadership Rate (%)</p>
-            <PlotlyChart data={phdByCategory} layout={{ showlegend: false, yaxis: { title: "% of firms" } }} height={280} />
+            <PlotlyChart data={phdByCategory} layout={{ showlegend: false, yaxis: { title: "% of firms", tickformat: ".1f", rangemode: "tozero" } }} height={280} />
           </div>
           <div className="bg-white border border-slate-200 rounded-xl p-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Equity Ratio by Category</p>

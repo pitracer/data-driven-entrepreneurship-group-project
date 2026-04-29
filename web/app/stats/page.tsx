@@ -138,7 +138,12 @@ export default function StatsPage() {
                 text: result.correlation_matrix.values.map(row => row.map(v => v.toFixed(2))),
                 texttemplate: "%{text}",
               }]}
-              layout={{ height: 420 }}
+              layout={{
+                height: 480,
+                margin: { l: 160, b: 160, t: 20, r: 20 },
+                xaxis: { tickangle: -40, automargin: true },
+                yaxis: { automargin: true },
+              }}
             />
           </div>
         </>
