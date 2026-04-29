@@ -44,7 +44,8 @@ export default function LeadershipPage() {
     x: cats,
     y: cats.map(cat => {
       const sub = firms.filter(f => f.category_2024 === cat)
-      return sub.length ? Math.round((sub.filter(f => f.has_phd).length / sub.length) * 1000) / 10 : 0
+      // Return null (not 0) when empty — Plotly updates correctly from null→value but not from 0→value
+      return sub.length ? Math.round((sub.filter(f => f.has_phd).length / sub.length) * 1000) / 10 : null
     }),
     marker: { color: cats.map(cat => colors[cat]) },
   }]

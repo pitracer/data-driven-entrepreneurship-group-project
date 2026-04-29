@@ -139,11 +139,11 @@ export default function StatsPage() {
                 texttemplate: "%{text}",
               }]}
               layout={{
-                height: 480,
-                margin: { l: 160, b: 160, t: 20, r: 20 },
-                xaxis: { tickangle: -40, automargin: true },
-                yaxis: { automargin: true },
+                margin: { l: 180, b: 180, t: 20, r: 20 },
+                xaxis: { tickangle: -45 },
+                yaxis: {},
               }}
+              height={540}
             />
           </div>
         </>
