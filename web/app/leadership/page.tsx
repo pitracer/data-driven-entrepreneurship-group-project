@@ -59,17 +59,20 @@ export default function LeadershipPage() {
 
   // Academic leadership by sector
   const sectorPhd = useMemo(() => {
-    const map: Record<string, { total: number; withPhd: number }> = {}
+    const map: Record<string, { total: number; withPhd: number; section: string }> = {}
     firms.forEach(f => {
       const s = f.nace_letter ?? "?"
-      if (!map[s]) map[s] = { total: 0, withPhd: 0 }
+      if (!map[s]) map[s] = { total: 0, withPhd: 0, section: f.nace_section ?? s }
       map[s].total++
       if (f.has_phd) map[s].withPhd++
     })
     return Object.entries(map)
-      .map(([s, d]) => ({ sector: s, pct: d.total > 5 ? (d.withPhd / d.total) * 100 : 0 }))
-      .sort((a, b) => b.pct - a.pct)
-      .slice(0, 12)
+      .map(([s, d]) => {
+        const short = d.section.length > 30 ? d.section.slice(0, 28) + "…" : d.section
+        return { sector: s, label: `${s} · ${short}`, pct: d.total > 5 ? (d.withPhd / d.total) * 100 : 0 }
+      })
+      .sort((a, b) => a.pct - b.pct)   // ascending so Plotly renders highest at top
+      .slice(-12)
   }, [firms])
 
   const n_gazelle = firms.filter(f => f.gazelle_2024).length
@@ -121,9 +124,22 @@ export default function LeadershipPage() {
           <div className="bg-white border border-slate-200 rounded-xl p-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Academic Leadership by Sector (top 12)</p>
             <PlotlyChart
-              data={[{ type: "bar", orientation: "h", x: sectorPhd.map(d => d.pct), y: sectorPhd.map(d => d.sector), marker: { color: "#1E6FD4" } }]}
-              layout={{ showlegend: false, xaxis: { title: "% with PhD/Dr" }, yaxis: { automargin: true } }}
-              height={280}
+              data={[{
+                type: "bar", orientation: "h",
+                x: sectorPhd.map(d => d.pct),
+                y: sectorPhd.map(d => d.label),
+                marker: { color: "#1E6FD4" },
+                text: sectorPhd.map(d => `${d.pct.toFixed(0)}%`),
+                textposition: "outside",
+                cliponaxis: false,
+              }]}
+              layout={{
+                showlegend: false,
+                margin: { l: 200 },
+                xaxis: { title: "% with PhD/Dr", range: [0, 100], dtick: 25, ticksuffix: "%" },
+                yaxis: { automargin: true, tickfont: { size: 10 } },
+              }}
+              height={380}
             />
           </div>
         </div>
