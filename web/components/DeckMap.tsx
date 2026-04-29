@@ -11,6 +11,12 @@ interface Props { firms: Firm[] }
 
 const INITIAL_VIEW = { longitude: 6.78, latitude: 51.22, zoom: 11, pitch: 0, bearing: 0 }
 
+function jitter(id: string, axis: string): number {
+  let h = 0
+  for (const c of id + axis) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff
+  return ((h & 0xffff) / 0xffff - 0.5) * 0.0003 // ~15m spread, deterministic per firm
+}
+
 function hexToRgb(hex: string): [number, number, number] {
   const r = parseInt(hex.slice(1, 3), 16)
   const g = parseInt(hex.slice(3, 5), 16)
@@ -30,7 +36,7 @@ export default function DeckMap({ firms }: Props) {
   const layer = new ScatterplotLayer<Firm>({
     id: "firms",
     data: firms,
-    getPosition: f => [f.lon!, f.lat!],
+    getPosition: f => [f.lon! + jitter(f.bvd_id, "x"), f.lat! + jitter(f.bvd_id, "y")],
     getRadius: markerRadius,
     getFillColor: f => [...hexToRgb(CATEGORY_COLORS[f.category_2024 ?? "Other"] ?? "#94A3B8"), 150] as [number,number,number,number],
     getLineColor: [255, 255, 255, 210],

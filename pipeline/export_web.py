@@ -93,6 +93,49 @@ KEEP_COLS = [
 ]
 
 
+def _backfill_from_parquets(df: pd.DataFrame) -> None:
+    """Fill blank text/signal columns from raw pipeline parquets (in-place).
+
+    enriched.xlsx is the source of truth for manual corrections, but cells that
+    were cleared end up as NaN in the export. This function restores the original
+    pipeline output for those blanks without overwriting anything the user kept.
+    """
+    DATA_PROCESSED = ROOT / "data" / "processed"
+
+    # Backfill signal fields from firm_signals.parquet
+    SIGNAL_COLS = [
+        "growth_evidence", "business_model_refined", "target_segment",
+        "value_proposition_keywords", "scaling_signal_score", "scaling_types",
+        "digital_leverage_score", "has_careers", "has_content_engine", "has_product_platform",
+    ]
+    signal_path = DATA_PROCESSED / "firm_signals.parquet"
+    if signal_path.exists():
+        avail = ["bvd_id"] + [c for c in SIGNAL_COLS if c not in ("has_careers", "has_content_engine", "has_product_platform")]
+        try:
+            signals = pd.read_parquet(signal_path)[[c for c in avail if c in pd.read_parquet(signal_path).columns]]
+            df_merged = df.merge(signals, on="bvd_id", how="left", suffixes=("", "_sig"))
+            for col in SIGNAL_COLS:
+                sig_col = f"{col}_sig"
+                if sig_col in df_merged.columns and col in df_merged.columns:
+                    df[col] = df_merged[col].fillna(df_merged[sig_col]).values
+            print(f"[export_web] Backfilled signal fields from firm_signals.parquet")
+        except Exception as e:
+            print(f"[export_web] Could not backfill from firm_signals.parquet: {e}")
+
+    # Backfill snippet from search_results.parquet
+    search_path = DATA_PROCESSED / "search_results.parquet"
+    if search_path.exists() and "snippet" in df.columns:
+        try:
+            searches = pd.read_parquet(search_path)
+            if "snippet" in searches.columns:
+                snip = searches[["bvd_id", "snippet"]].drop_duplicates("bvd_id")
+                df_merged = df[["bvd_id", "snippet"]].merge(snip, on="bvd_id", how="left", suffixes=("", "_src"))
+                df["snippet"] = df_merged["snippet"].fillna(df_merged["snippet_src"]).values
+                print(f"[export_web] Backfilled snippets from search_results.parquet")
+        except Exception as e:
+            print(f"[export_web] Could not backfill from search_results.parquet: {e}")
+
+
 def export_firms() -> pd.DataFrame:
     # Prefer enriched.xlsx (manual adjustments + complete cluster data) over parquet
     if ENRICHED_XLSX.exists():
@@ -114,6 +157,11 @@ def export_firms() -> pd.DataFrame:
     cols = [c for c in KEEP_COLS if c in df.columns]
     df = df[cols].copy()
 
+    # Backfill missing text/signal fields from raw pipeline parquets.
+    # enriched.xlsx has manual corrections but may have cleared some cells;
+    # the raw parquets hold the original pipeline output for every firm.
+    _backfill_from_parquets(df)
+
     # Convert bool columns to plain True/False/None (JSON-safe)
     bool_cols = ["gazelle_2024", "scaler_2024", "high_growth_2024", "priority_enrich",
                  "has_phd", "has_professor", "has_careers", "has_content_engine", "has_product_platform"]
@@ -125,9 +173,15 @@ def export_firms() -> pd.DataFrame:
     for col in df.select_dtypes(include=["Int64", "int64"]).columns:
         df[col] = df[col].apply(lambda v: int(v) if pd.notna(v) else None)
 
-    # Round floats to 2 decimal places
+    # Round floats to 2 decimal places — but preserve coordinate precision
+    GEO_COLS = {"lat", "lon"}
     for col in df.select_dtypes(include=["float64", "float32"]).columns:
-        df[col] = df[col].round(2)
+        if col not in GEO_COLS:
+            df[col] = df[col].round(2)
+    # Keep coordinates at 5 decimal places (~1m precision)
+    for col in GEO_COLS:
+        if col in df.columns:
+            df[col] = df[col].round(5)
 
     out = WEB_DATA / "firms.json"
     records = df.astype(object).where(pd.notna(df), None).to_dict(orient="records")

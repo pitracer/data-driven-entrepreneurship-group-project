@@ -72,12 +72,12 @@ function buildDatasetSummary(firms: Firm[]): string {
 }
 
 const SYSTEM_PROMPT = `You are a business analyst specializing in the Düsseldorf startup and SME ecosystem.
-You have access to data on 1,555 firms in Düsseldorf, Germany — including Gazelles (≥20% annual growth),
+You have summary statistics on all 1,555 firms in Düsseldorf, Germany — including Gazelles (≥20% annual growth),
 Scalers (sustained high growth), and other categories.
-
-Answer questions about these firms using the provided context. Be specific and cite company names.
-If the context doesn't contain enough information, say so honestly.
-Keep answers concise (3-6 sentences) unless asked for detail.`
+For each question, the most relevant firms are retrieved and shown to you as context.
+Use them specifically and cite company names when answering.
+If the retrieved context doesn't cover the question well, say so honestly.
+Keep answers concise (3–6 sentences) unless asked for more detail.`
 
 export async function POST(req: NextRequest) {
   try {
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     const userQuery = query ?? messages.findLast((m) => m.role === "user")?.content ?? ""
 
     // Retrieve relevant firms — use embeddings if available, keyword search as fallback
-    let topBvdIds = keywordSearch(userQuery, firms, 12)
+    let topBvdIds = keywordSearch(userQuery, firms, 20)
     if (embeddings && embeddings.length > 0 && topBvdIds.length === 0) {
       topBvdIds = firms.filter(f => f.priority_enrich).slice(0, 12).map(f => f.bvd_id)
     }

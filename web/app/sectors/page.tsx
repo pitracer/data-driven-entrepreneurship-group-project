@@ -106,7 +106,7 @@ export default function SectorsPage() {
               name: `Sector ${d.sector}`, x: d.x, y: d.y,
               line: { color: COLORS[i], width: 2 },
             }))}
-            layout={{ yaxis: { title: "Total employees" }, legend: { orientation: "h", y: 1.1 } }}
+            layout={{ yaxis: { title: "Total employees", rangemode: "tozero", tickformat: "~s" }, legend: { orientation: "h", y: 1.1 } }}
           />
         </div>
 

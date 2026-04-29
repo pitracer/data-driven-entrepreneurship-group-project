@@ -106,7 +106,7 @@ export default function LeadershipPage() {
           </div>
           <div className="bg-white border border-slate-200 rounded-xl p-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Equity Ratio by Category</p>
-            <PlotlyChart data={equityData} layout={{ showlegend: false, yaxis: { title: "Equity ratio (%)" } }} height={280} />
+            <PlotlyChart data={equityData} layout={{ showlegend: false, yaxis: { title: "Equity ratio (%)", tickformat: ".1f", hoverformat: ".1f" } }} height={280} />
           </div>
           <div className="bg-white border border-slate-200 rounded-xl p-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Academic Leadership by Sector (top 12)</p>
