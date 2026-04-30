@@ -103,7 +103,7 @@ def chat(
         "Answer questions using the firm data below. Be concise and cite specific numbers.\n\n"
         f"Relevant firms:\n{context}\n\n"
         "Dataset overview: 1,555 firms in Düsseldorf, including 40 Gazelles (20%+/year growth) "
-        "and 156 Scalers (sustained high growth)."
+        "and 178 Scalers (sustained high growth)."
     )
 
     # Strip any extra keys (e.g. "sources") — Groq only accepts role + content

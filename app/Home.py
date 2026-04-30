@@ -121,8 +121,19 @@ kpi(c5, "PhD/Dr Mgmt", str(n_phd_mgmt), f"of {len(df):,} firms")
 col_l, col_r = st.columns([1, 1])
 
 with col_l:
-    cat_counts = df["category_2024"].value_counts().reset_index()
-    cat_counts.columns = ["Category", "Firms"]
+    cat_counts = pd.DataFrame({
+        "Category": ["Gazelle", "Scaler", "HighGrowth", "Mature", "Other"],
+        "Firms": [
+            int(df["gazelle_2024"].sum()),
+            int(df["scaler_2024"].sum()),
+            int(df["high_growth_2024"].sum()) if "high_growth_2024" in df.columns else 0,
+            int(df["mature_2024"].sum()) if "mature_2024" in df.columns else 0,
+            int((~df[["gazelle_2024", "scaler_2024"]].any(axis=1)
+                 & ~df.get("high_growth_2024", pd.Series(False)).astype(bool)
+                 & ~df.get("mature_2024", pd.Series(False)).astype(bool)).sum()),
+        ],
+    })
+    cat_counts = cat_counts[cat_counts["Firms"] > 0]
     st.dataframe(cat_counts, hide_index=True, use_container_width=True)
 
 with col_r:
